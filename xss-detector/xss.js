@@ -56,7 +56,7 @@ var service = server.listen(host + ":" + port, function(request, response) {
 		if(xssResults) {
 			// XSS is found, return information here
 			response.statusCode = 200;
-			response.write("XSS Detected");
+			response.write(JSON.stringify(xssResults));
 			response.close();
 		} else {
 			response.statusCode = 201;
