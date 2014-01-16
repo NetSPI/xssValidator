@@ -1,5 +1,23 @@
+/**
+ * This is a basic phantomJS script that will be used together
+ * with the XSS auditor burp extender.
+ *
+ * This script launches a web server that listens by default 
+ * on 127.0.0.1:8093. The server listens for POST requests with 
+ * http-response data.
+ *
+ * http-response should contain base64 encoded HTTP response as
+ * passed from burp intruder. The server will decode this data, 
+ * and build a WebPage bassed of the markup provided.
+ *
+ * The WebPage will be injected with the js-overrides.js file, 
+ * which contains triggers for suspicious JS functions, such as
+ * alert, confirm, etc. The page will be evaluated, and the DOM
+ * triggers will alert us of any suspicious JS.
+*/
 var system = require('system');
 var fs = require('fs');
+
 var wp = new WebPage();
 var webserver = require('webserver');
 server = webserver.create();
@@ -19,18 +37,22 @@ wp.settings = {
 var host = '127.0.0.1';
 var port = '8093';
 
-// Start web server
+// Start web server and listen for requests
 var service = server.listen(host + ":" + port, function(request, response) {
-	// Listen for requests
-	// Grab data from request and pass along to parsePage function
-	console.log("Received request");
-	console.log("Request Method: " + request.method);
+	console.log("Received request with method type: " + request.method);
 
+	// At this point in time we're only concerned with POST requests
+	// As such, only process those.
 	if(request.method == "POST") {
+		console.log("Processing Post Request");
+
+		// Grab pageResponse from POST Data and base64 decode.
+		// pass result to parsePage function to search for XSS.
 		var pageResponse = request.post['http-response'];
 		pageResponse = atob(pageResponse);
 		xssResults = parsePage(pageResponse);
 
+		// Return XSS Results
 		if(xssResults) {
 			// XSS is found, return information here
 			response.statusCode = 200;
@@ -46,6 +68,11 @@ var service = server.listen(host + ":" + port, function(request, response) {
 		response.write("Server is not designed to handle GET requests");
 		response.close();
 	}
+
+	// Re-initialize webpage after parsing request
+	wp = new WebPage();
+	pageResponse = null;
+	xssResults = null;
 });
 	
 /**
@@ -58,7 +85,7 @@ var service = server.listen(host + ":" + port, function(request, response) {
  * alert, confirm, fromCharCode, etc.
  */
 parsePage = function(data) {
-	console.log("Parsing: Here's post data - " + data);
+	console.log("Beginning to parse page");
 	// Set variables to default, indicating no intial xss
 	var isXSS = new Object();
 	isXSS.value = 0;
@@ -67,15 +94,15 @@ parsePage = function(data) {
 	var html_response = "";
 	wp.content = fs.read('js-overrides.js') + data;
 
-	isXSS.msg = wp.evaluate(function () {
-		return xss.message;
-	});
+	// Evaluate page, rendering javascript
+	xssInfo = wp.evaluate(function (wp) {
+		return xss;
+	}, wp);
 
-	if(isXSS.msg) {
+	if(xssInfo["message"] != 0) {
 		// xss detected, return
-		console.log(isXSS.msg);
-		return isXSS.msg;
+		console.log("Xss detected:" + isXSS);
+		return xssInfo;
 	}
-	console.log("Finished parsing request");
 	return false;
 }

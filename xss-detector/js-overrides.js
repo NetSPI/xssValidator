@@ -2,9 +2,7 @@
 var flag = new Object;
 flag.set = 0;
 var xss = new Object;
-
 xss.message = 0;
-
 (function () {
 	var XSSTripwire = new Object();
 
