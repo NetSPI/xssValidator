@@ -29,13 +29,18 @@ public class BurpExtender implements IBurpExtender, IHttpListener, IIntruderPayl
     
     private static String phantomServer = "http://127.0.0.1:8093";
 	
+    /**
+     * Initial Payloads. Will add capability to load from file
+     */
 	public static final byte[][] PAYLOADS = {
 		"<script>alert(1)</script>".getBytes(),
 		"'';!--\"<XSS>=&{()}".getBytes(),
 		"<SCRIPT SRC=http://ha.ckers.org/xss.js></SCRIPT>".getBytes(),
 		"<IMG SRC=\"jav&#x0A;ascript:alert('XSS');\">".getBytes(),
-		"\"><script>alert(1)</script>".getBytes()
+		"\"><script>alert(1)</script>".getBytes(),
+		"%3Cscript%3E%3Cscript%3Ealert%281%29%3C/script%3E%3C".getBytes()
 	};
+	
 	
 	public void registerExtenderCallbacks(IBurpExtenderCallbacks callbacks) {
 		mCallbacks = callbacks;
@@ -77,10 +82,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, IIntruderPayl
     }
     
 	public void processHttpMessage(int toolFlag, boolean messageIsRequest, IHttpRequestResponse messageInfo) {
-		stdout.println("HTTP Listener started...");
-		
         if (toolFlag == 32 && messageIsRequest) {
-        	stdout.println("HTTP Listener intruder http request match found...");
         	// Manipulate intruder request, if necessary
         } else if (toolFlag == 32 && ! messageIsRequest) {
         	stdout.println("Response Received");
@@ -98,20 +100,20 @@ public class BurpExtender implements IBurpExtender, IHttpListener, IIntruderPayl
 	        	HttpResponse response = client.execute(PhantomJs);
 	        	String responseAsString = EntityUtils.toString(response.getEntity());
 	            
-            	stdout.println("Response" + responseAsString);
+            	stdout.println("Response: " + responseAsString);
             	
 	            // parse response for XSS
 	            if(responseAsString.contains("message")) {
 	            	// Append weird string to identify XSS
 		            String newResponse = helpers.bytesToString(messageInfo.getResponse()) + "fy7sdufsuidfhuisdf";
 	            	messageInfo.setResponse(helpers.stringToBytes(newResponse));
+	            	stdout.println("XSS Found");
 	            }
 	            
         	} catch (Exception e) {
         		stderr.println(e.getMessage());
         	}
         }
-        stdout.println("HTTP Listener finished...");
 	}
 		
 	class IntruderPayloadGenerator implements IIntruderPayloadGenerator {
