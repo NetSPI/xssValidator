@@ -17,20 +17,72 @@
 */
 var system = require('system');
 var fs = require('fs');
+var xss = new Object();
+xss.value = 0;
+xss.msg = 'Safe';
 
-var wp = new WebPage();
+/**
+ * parse incoming HTTP responses that are provided via BURP intruder.
+ * data is base64 encoded to prevent issues passing via HTTP.
+ *
+ * This function appends the js-overrides.js file to all responses
+ * to inject xss triggers into every page. Webkit will parse all responses
+ * and alert us of any seemingly malicious Javascript execution, such as
+ * alert, confirm, fromCharCode, etc.
+ */
+parsePage = function(data) {
+	console.log("Beginning to parse page");
+	var html_response = "";
+	wp.content = data;
+
+	// Evaluate page, rendering javascript
+	xssInfo = wp.evaluate(function (wp) {
+		// Return information from page, if necessary
+	}, wp);
+
+	if(xss) {
+		// xss detected, return
+		console.log("Xss detected:" + JSON.stringify(xss));
+		return xss;
+	}
+	return false;
+};
+
+reInitializeWebPage = function() {
+	wp = new WebPage();
+	xss = new Object();
+	xss.value = 0;
+	xss.msg = 'Safe';
+
+	// web page settings necessary to adequately detect XSS
+	wp.settings = {
+		loadImages: true,
+		localToRemoteUrlAccessEnabled: true,
+		javascriptEnabled: true,
+		webSecurityEnabled: true,
+		XSSAuditingEnabled: true
+	};
+
+	// Custom handler for alert functionality
+	wp.onAlert = function(msg) {
+		xss.value = 1;
+		xss.msg = 'XSS found: Alert(' + msg + ')';
+		console.log("On alert Detected: " + msg);
+	};
+
+
+	wp.onConsoleMessage = function(msg) {
+		xss = true;
+	    console.log('console: ' + msg);
+	};
+
+	return wp;
+};
+
+var wp = reInitializeWebPage();
+
 var webserver = require('webserver');
 server = webserver.create();
-
-
-// web page settings necessary to adequately detect XSS
-wp.settings = {
-	loadImages: true,
-	localToRemoteUrlAccessEnabled: true,
-	javascriptEnabled: true,
-	webSecurityEnabled: true,
-	XSSAuditingEnabled: true
-};
 
 
 // Server config details
@@ -70,39 +122,8 @@ var service = server.listen(host + ":" + port, function(request, response) {
 	}
 
 	// Re-initialize webpage after parsing request
-	wp = new WebPage();
+	wp = reInitializeWebPage();
 	pageResponse = null;
 	xssResults = null;
 });
 	
-/**
- * parse incoming HTTP responses that are provided via BURP intruder.
- * data is base64 encoded to prevent issues passing via HTTP.
- *
- * This function appends the js-overrides.js file to all responses
- * to inject xss triggers into every page. Webkit will parse all responses
- * and alert us of any seemingly malicious Javascript execution, such as
- * alert, confirm, fromCharCode, etc.
- */
-parsePage = function(data) {
-	console.log("Beginning to parse page");
-	// Set variables to default, indicating no intial xss
-	var isXSS = new Object();
-	isXSS.value = 0;
-	isXSS.msg = 'Safe';
-
-	var html_response = "";
-	wp.content = fs.read('js-overrides.js') + data;
-
-	// Evaluate page, rendering javascript
-	xssInfo = wp.evaluate(function (wp) {
-		return xss;
-	}, wp);
-
-	if(xssInfo["message"] != 0) {
-		// xss detected, return
-		console.log("Xss detected:" + isXSS);
-		return xssInfo;
-	}
-	return false;
-}
