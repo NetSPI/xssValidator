@@ -94,7 +94,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, IIntruderPayl
 		
 		this.client = HttpClientBuilder.create().build();
 		helpers = callbacks.getHelpers();
-		callbacks.setExtensionName("XSS Auditor Payloads");
+		callbacks.setExtensionName("XSS Validator Payloads");
 		stdout = new PrintWriter(callbacks.getStdout(), true);
         stderr = new PrintWriter(callbacks.getStderr(), true);
 		callbacks.registerIntruderPayloadGeneratorFactory(this);
@@ -104,7 +104,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, IIntruderPayl
 	
 	@Override
 	public String getGeneratorName() {
-		return "XSS Auditor Payloads";
+		return "XSS Validator Payloads";
 	}
 	
 	@Override
