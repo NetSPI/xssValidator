@@ -17,9 +17,17 @@
 */
 var system = require('system');
 var fs = require('fs');
+
 var xss = new Object();
 xss.value = 0;
 xss.msg = 'Safe';
+
+// Trigger phrase is used to weed-out false positives.
+// Need to find a way to pass this dynamically to the app
+// Essentially, events that would be considered XSS
+// are compared to this trigger to ensure that it is not
+// expected page behavior
+var trigger = "f7sdgfjFpoG";
 
 /**
  * parse incoming HTTP responses that are provided via BURP intruder.
@@ -65,9 +73,11 @@ reInitializeWebPage = function() {
 
 	// Custom handler for alert functionality
 	wp.onAlert = function(msg) {
-		xss.value = 1;
-		xss.msg = 'XSS found: Alert(' + msg + ')';
-		console.log("On alert Detected: " + msg);
+		if(msg.indexOf(trigger) != -1) {
+			xss.value = 1;
+			xss.msg = 'XSS found: Alert(' + msg + ')';
+			console.log("On alert Detected: " + msg);
+		}
 	};
 
 
