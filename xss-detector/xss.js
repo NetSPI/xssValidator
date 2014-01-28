@@ -18,9 +18,18 @@
 var system = require('system');
 var fs = require('fs');
 
+// Create xss object that will be used to track XSS information
 var xss = new Object();
 xss.value = 0;
 xss.msg = 'Safe';
+
+// Create webserver object
+var webserver = require('webserver');
+server = webserver.create();
+
+// Server config details
+var host = '127.0.0.1';
+var port = '8093';
 
 // Trigger phrase is used to weed-out false positives.
 // Need to find a way to pass this dynamically to the app
@@ -48,6 +57,7 @@ parsePage = function(data) {
 		// Return information from page, if necessary
 	}, wp);
 
+	// This is triggering because xss = object. FIXME
 	if(xss) {
 		// xss detected, return
 		console.log("Xss detected:" + JSON.stringify(xss));
@@ -56,6 +66,12 @@ parsePage = function(data) {
 	return false;
 };
 
+/**
+ * After retriving data it is important to reinitialize certain
+ * variables, specifically those related to the WebPage objects.
+ * Without reinitializing the WebPage object may contain old data,
+ * and as such, trigger false-positive messages.
+ */
 reInitializeWebPage = function() {
 	wp = new WebPage();
 	xss = new Object();
@@ -73,6 +89,7 @@ reInitializeWebPage = function() {
 
 	// Custom handler for alert functionality
 	wp.onAlert = function(msg) {
+		console.log("On alert: " + msg);
 		if(msg.indexOf(trigger) != -1) {
 			xss.value = 1;
 			xss.msg = 'XSS found: Alert(' + msg + ')';
@@ -89,15 +106,9 @@ reInitializeWebPage = function() {
 	return wp;
 };
 
+// Initialize webpage to ensure that all variables are
+// initialized.
 var wp = reInitializeWebPage();
-
-var webserver = require('webserver');
-server = webserver.create();
-
-
-// Server config details
-var host = '127.0.0.1';
-var port = '8093';
 
 // Start web server and listen for requests
 var service = server.listen(host + ":" + port, function(request, response) {
@@ -127,7 +138,7 @@ var service = server.listen(host + ":" + port, function(request, response) {
 		}
 	} else {
 		response.statusCode = 500;
-		response.write("Server is not designed to handle GET requests");
+		response.write("Server is only designed to handle GET requests");
 		response.close();
 	}
 
