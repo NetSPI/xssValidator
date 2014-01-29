@@ -50,10 +50,8 @@ parsePage = function(data) {
 		// Return information from page, if necessary
 	}, wp);
 
-	// This is triggering because xss = object. FIXME
 	if(xss) {
 		// xss detected, return
-		console.log("Xss detected:" + JSON.stringify(xss));
 		return xss;
 	}
 	return false;
@@ -69,7 +67,7 @@ reInitializeWebPage = function() {
 	wp = new WebPage();
 	xss = new Object();
 	xss.value = 0;
-	xss.msg = 'Safe';
+	xss.msg = "";
 
 	// web page settings necessary to adequately detect XSS
 	wp.settings = {
@@ -103,7 +101,7 @@ var wp = reInitializeWebPage();
 
 // Start web server and listen for requests
 var service = server.listen(host + ":" + port, function(request, response) {
-	console.log("Received request with method type: " + request.method);
+	console.log("\nReceived request with method type: " + request.method);
 
 	// At this point in time we're only concerned with POST requests
 	// As such, only process those.
