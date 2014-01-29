@@ -18,11 +18,16 @@ The XSS detection is influenced by Trustwave's blog post: Server-Side XSS Attack
 Usage
 -----
 
-Starting phantom server:
+Before starting an attack it is necessary to start the phantom server. Navigate to the xss-detector directory and execute the following:
 
 	$ phantomjs xss.js 
 
-The server will listen by default on port 8093. The server is expecting base64 encoded page responses passed via the http-response POST parameter.
+The server will listen by default on port 8093. The server is expecting base64 encoded page responses passed via the http-response, which will be passed via the Burp extender. 
 
-Use the post-test.html file and examples/answer_ebay.html.base64 to test.
+Examples
+--------
 
+Within the xss-detector directory there is a folder of examples which can be used to test
+the extenders functionality.
+
+* **Basic-xss.php**: This is the most basic example of a web application that is vulnerable to XSS. It demonstrates how legitimate javascript functionality, such as alerts and console logs, do not trigger false-positives.
