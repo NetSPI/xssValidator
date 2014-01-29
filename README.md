@@ -31,3 +31,5 @@ Within the xss-detector directory there is a folder of examples which can be use
 the extenders functionality.
 
 * **Basic-xss.php**: This is the most basic example of a web application that is vulnerable to XSS. It demonstrates how legitimate javascript functionality, such as alerts and console logs, do not trigger false-positives.
+* **Bypass-regex.php**: This demonstrates a XSS vulnerability that occurs when users attempt to filter input by running it through a single-pass regex.
+* **Dom-xss.php**: A basic script that demonstrates the tools ability to inject payloads into javascript functionality, and detect their success.
