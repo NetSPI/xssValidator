@@ -26,12 +26,14 @@ First, download the proper apache libraries. These libraries are available for f
 	$ mv /path/to/libs/*.jar /path/to/xssValidator/burp-extender/lib/
  
 Now, navigate to the burp-extender/bin/burp directory:
+
 	$ cd burp-extender/bin/burp
 
 Build the jar using Apache ant:
+
 	$ ant
 
-After this has completed you should see a `BUILD SUCCESSFUL' message. The .jar file is located in burp-extender/bin/burp/xssValidator.jar. Import this into Burp.
+After this has completed you should see a BUILD SUCCESSFUL message. The .jar file is located in burp-extender/bin/burp/xssValidator.jar. Import this into Burp.
 
 Usage
 -----
