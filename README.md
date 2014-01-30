@@ -15,6 +15,24 @@ The XSS detection server is powered by Phantom.js and leverages webkit's XSS aud
 
 The XSS detection is influenced by Trustwave's blog post: Server-Side XSS Attack Detection with ModSecurity and PhantomJS:http://blog.spiderlabs.com/2013/02/server-site-xss-attack-detection-with-modsecurity-and-phantomjs.html
 
+Building Extender .Jar
+----------------------
+
+To build the extender .jar file, we first need to ensure that the system has ant, and is running version Java 7 or higher.
+
+First, download the proper apache libraries. These libraries are available for free from http://hc.apache.org/. Once the libraries have been downloaded, create a lib directory in the project root and move the .jar libraries into this directory:
+
+	$ mkdir /path/to/xssValidator/burp-extender/lib
+	$ mv /path/to/libs/*.jar /path/to/xssValidator/burp-extender/lib/
+ 
+Now, navigate to the burp-extender/bin/burp directory:
+	$ cd burp-extender/bin/burp
+
+Build the jar using Apache ant:
+	$ ant
+
+After this has completed you should see a `BUILD SUCCESSFUL' message. The .jar file is located in burp-extender/bin/burp/xssValidator.jar. Import this into Burp.
+
 Usage
 -----
 
