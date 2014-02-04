@@ -7,7 +7,6 @@ function getUrlVars() {
 }
 Usage:
 
-var payload= getUrlVars()["payload"];
-var method= getUrlVars()["method"];
+var payload= getUrlVars()["payload"] || "alert('xss')";
 
-alert(payload);
+eval(payload);
