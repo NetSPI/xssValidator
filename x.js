@@ -7,5 +7,5 @@ function getUrlVars() {
 }
 
 //Usage:
-var payload= getUrlVars()["payload"] || "alert('xss')";x
+var payload= getUrlVars()["payload"] || "alert('xss')";
 eval(payload);
