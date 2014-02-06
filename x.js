@@ -5,8 +5,7 @@ function getUrlVars() {
   });
   return vars;
 }
-Usage:
 
-var payload= getUrlVars()["payload"] || "alert('xss')";
-
+//Usage:
+var payload= getUrlVars()["payload"] || "alert('xss')";x
 eval(payload);
