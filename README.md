@@ -20,7 +20,7 @@ Building Extender .Jar
 
 To build the extender .jar file, we first need to ensure that the system has ant, and is running version Java 7 or higher.
 
-First, download the proper apache libraries. These libraries are available for free from http://hc.apache.org/. Once the libraries have been downloaded, create a lib directory in the project root and move the .jar libraries into this directory:
+First, download the apache HttpComponents Client libraries. These libraries are available for free from http://hc.apache.org/. Once the libraries have been downloaded, create a lib directory in the project root and move the .jar libraries into this directory:
 
 	$ mkdir /path/to/xssValidator/burp-extender/lib
 	$ mv /path/to/libs/*.jar /path/to/xssValidator/burp-extender/lib/
