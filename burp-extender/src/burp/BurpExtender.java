@@ -1,5 +1,25 @@
 package burp;
 import burp.*;
+import java.awt.Component;
+import java.awt.BorderLayout;
+import java.awt.Dimension;
+import java.awt.GridLayout;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.io.PrintWriter;
+import java.util.HashMap;
+import java.util.List;
+
+import javax.swing.JButton;
+import javax.swing.JComboBox;
+import javax.swing.JLabel;
+import javax.swing.JMenu;
+import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JTabbedPane;
+import javax.swing.SwingUtilities;
+
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
@@ -18,7 +38,11 @@ import org.apache.http.message.BasicNameValuePair;
 
 import org.apache.commons.codec.binary.Base64;
 
-public class BurpExtender implements IBurpExtender, IHttpListener, IIntruderPayloadGeneratorFactory, IIntruderPayloadProcessor	{
+import burp.ITab;
+import burp.IContextMenuFactory;
+import burp.IContextMenuInvocation;
+
+public class BurpExtender implements IBurpExtender, ITab, IHttpListener, IIntruderPayloadGeneratorFactory, IIntruderPayloadProcessor	{
 	public burp.IBurpExtenderCallbacks mCallbacks;
 	private IExtensionHelpers helpers;
 	private PrintWriter stdout;
@@ -31,6 +55,11 @@ public class BurpExtender implements IBurpExtender, IHttpListener, IIntruderPayl
     private static String phantomServer = "http://127.0.0.1:8093";
     
     private static String triggerPhrase = "f7sdgfjFpoG";
+    
+    public JPanel mainPanel, menuPanel;
+    public JTabbedPane tabbedPane;
+    public JButton btnAddText,btnSaveTabAsTemplate,btnRemoveTab;
+    public JComboBox tabList;
 	
     /**
      * Initial Payloads containing trigger phrase, f7sdgfjFpoG.
@@ -68,6 +97,37 @@ public class BurpExtender implements IBurpExtender, IHttpListener, IIntruderPayl
 		callbacks.registerIntruderPayloadGeneratorFactory(this);
 		callbacks.registerIntruderPayloadProcessor(this);
 		callbacks.registerHttpListener(this);
+		
+		SwingUtilities.invokeLater(new Runnable(){
+        	@Override
+        	public void run(){
+        		//Create our initial UI components
+                mainPanel = new JPanel(new BorderLayout());
+                menuPanel = new JPanel();
+                menuPanel.setPreferredSize(new Dimension(150,500));
+        		tabbedPane = new JTabbedPane();
+                mainPanel.add(menuPanel, BorderLayout.LINE_START);
+                mainPanel.add(tabbedPane, BorderLayout.CENTER);
+                
+        		//Add the save,load, and document buttons
+                JLabel menuLabel = new JLabel("Menu"); 
+                btnAddText = new JButton("New Text");
+                btnAddText.setPreferredSize(new Dimension(130,30));
+
+              
+        		mCallbacks.customizeUiComponent(mainPanel);
+        		mCallbacks.addSuiteTab(BurpExtender.this);
+        	}
+        });
+	}
+	
+	public String getTabCaption() {
+		return "xssValidator";
+	}
+
+	@Override
+	public Component getUiComponent() {
+		return mainPanel;
 	}
 	
 	@Override
