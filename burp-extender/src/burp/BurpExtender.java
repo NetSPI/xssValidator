@@ -1,37 +1,23 @@
 package burp;
-import burp.*;
+
 import java.awt.Component;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
-import java.awt.GridLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.io.PrintWriter;
-import java.util.HashMap;
 import java.util.List;
 
 import javax.swing.JButton;
-import javax.swing.JComboBox;
-import javax.swing.JLabel;
-import javax.swing.JMenu;
-import javax.swing.JMenuItem;
-import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JTabbedPane;
 import javax.swing.SwingUtilities;
 
-import java.io.PrintWriter;
 import java.util.ArrayList;
-import java.util.List;
 
-import org.apache.http.Header;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
-import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.http.message.BasicHeader;
 import org.apache.http.util.EntityUtils;
 import org.apache.http.NameValuePair;
 import org.apache.http.message.BasicNameValuePair;
@@ -39,8 +25,6 @@ import org.apache.http.message.BasicNameValuePair;
 import org.apache.commons.codec.binary.Base64;
 
 import burp.ITab;
-import burp.IContextMenuFactory;
-import burp.IContextMenuInvocation;
 
 public class BurpExtender implements IBurpExtender, ITab, IHttpListener, IIntruderPayloadGeneratorFactory, IIntruderPayloadProcessor	{
 	public burp.IBurpExtenderCallbacks mCallbacks;
@@ -59,7 +43,6 @@ public class BurpExtender implements IBurpExtender, ITab, IHttpListener, IIntrud
     public JPanel mainPanel, menuPanel;
     public JTabbedPane tabbedPane;
     public JButton btnAddText,btnSaveTabAsTemplate,btnRemoveTab;
-    public JComboBox tabList;
 	
     /**
      * Initial Payloads containing trigger phrase, f7sdgfjFpoG.
@@ -110,10 +93,8 @@ public class BurpExtender implements IBurpExtender, ITab, IHttpListener, IIntrud
                 mainPanel.add(tabbedPane, BorderLayout.CENTER);
                 
         		//Add the save,load, and document buttons
-                JLabel menuLabel = new JLabel("Menu"); 
                 btnAddText = new JButton("New Text");
                 btnAddText.setPreferredSize(new Dimension(130,30));
-
               
         		mCallbacks.customizeUiComponent(mainPanel);
         		mCallbacks.addSuiteTab(BurpExtender.this);
