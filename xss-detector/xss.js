@@ -74,8 +74,8 @@ reInitializeWebPage = function() {
 		loadImages: true,
 		localToRemoteUrlAccessEnabled: true,
 		javascriptEnabled: true,
-		webSecurityEnabled: true,
-		XSSAuditingEnabled: true
+		webSecurityEnabled: false,
+		XSSAuditingEnabled: false
 	};
 
 	// Custom handler for alert functionality
