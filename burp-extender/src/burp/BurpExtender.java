@@ -10,6 +10,8 @@ import javax.swing.JButton;
 import javax.swing.JPanel;
 import javax.swing.JTabbedPane;
 import javax.swing.SwingUtilities;
+import javax.swing.JTextField;
+import javax.swing.JLabel;
 
 import java.util.ArrayList;
 
@@ -35,12 +37,14 @@ public class BurpExtender implements IBurpExtender, ITab, IHttpListener, IIntrud
     private HttpClient client;
     
     // Default server location for phantomJS Server
-    // If you're using a customer server, please change and recompile.
+    // User can adjust this location by using the xssValidator
+    // tab within Burp.
     private static String phantomServer = "http://127.0.0.1:8093";
     
     private static String triggerPhrase = "f7sdgfjFpoG";
     
-    public JPanel mainPanel, menuPanel;
+    public JPanel mainPanel, serverConfig;
+    public JTextField phantomURL;
     public JTabbedPane tabbedPane;
     public JButton btnAddText,btnSaveTabAsTemplate,btnRemoveTab;
 	
@@ -55,6 +59,7 @@ public class BurpExtender implements IBurpExtender, ITab, IHttpListener, IIntrud
      */
     public static final byte[][] PAYLOADS = {
 		("<script>alert('" + triggerPhrase + "')</script>").getBytes(),
+		("<scr ipt>alert('" + triggerPhrase + "')</scr ipt>").getBytes(),
 		("\"><script>alert('" + triggerPhrase + "')</script>").getBytes(),
 		("'><script>alert('" + triggerPhrase + "')</script>").getBytes(),
 		("<SCRIPT>alert('" + triggerPhrase + "');</SCRIPT>").getBytes(),
@@ -66,8 +71,7 @@ public class BurpExtender implements IBurpExtender, ITab, IHttpListener, IIntrud
 		("<SCRIPT>a=/" + triggerPhrase + "/").getBytes(),
 		("\\\";alert('" + triggerPhrase + "');//").getBytes(),
 		("<STYLE TYPE=\"text/javascript\">alert('" + triggerPhrase + "');</STYLE>").getBytes(),
-		("<HEAD><META HTTP-EQUIV=\"CONTENT-TYPE\" CONTENT=\"text/html; charset=UTF-7\"> </HEAD>+ADw-SCRIPT+AD4-alert('" + triggerPhrase + "');+ADw-/SCRIPT+AD4-").getBytes(),
-	};
+    };
 	
 	public void registerExtenderCallbacks(IBurpExtenderCallbacks callbacks) {
 		mCallbacks = callbacks;
@@ -86,16 +90,19 @@ public class BurpExtender implements IBurpExtender, ITab, IHttpListener, IIntrud
         	public void run(){
         		//Create our initial UI components
                 mainPanel = new JPanel(new BorderLayout());
-                menuPanel = new JPanel();
-                menuPanel.setPreferredSize(new Dimension(150,500));
-        		tabbedPane = new JTabbedPane();
-                mainPanel.add(menuPanel, BorderLayout.LINE_START);
-                mainPanel.add(tabbedPane, BorderLayout.CENTER);
                 
-        		//Add the save,load, and document buttons
-                btnAddText = new JButton("New Text");
-                btnAddText.setPreferredSize(new Dimension(130,30));
-              
+                serverConfig = new JPanel();
+                serverConfig.setPreferredSize(new Dimension(400, 400));
+                
+                phantomURL = new JTextField(20);
+                phantomURL.setText(phantomServer);
+        	    
+                JLabel heading  = new JLabel("PhantomJS Server Settings");
+                serverConfig.add(heading);
+                
+                serverConfig.add(phantomURL);
+                
+                mainPanel.add(serverConfig);
         		mCallbacks.customizeUiComponent(mainPanel);
         		mCallbacks.addSuiteTab(BurpExtender.this);
         	}
@@ -154,7 +161,7 @@ public class BurpExtender implements IBurpExtender, ITab, IHttpListener, IIntrud
         if (toolFlag == 32 && messageIsRequest) {
         	// Manipulate intruder request, if necessary
         } else if (toolFlag == 32 && ! messageIsRequest) {
-        	HttpPost PhantomJs = new HttpPost(phantomServer);
+        	HttpPost PhantomJs = new HttpPost(phantomURL.getText());
         	
         	try {
         		byte[] encodedBytes = Base64.encodeBase64(messageInfo.getResponse());
