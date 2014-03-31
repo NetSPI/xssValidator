@@ -1,6 +1,6 @@
 /**
  * This is a basic phantomJS script that will be used together
- * with the XSS auditor burp extender.
+ * with the xssValidator burp extender.
  *
  * This script launches a web server that listens by default 
  * on 127.0.0.1:8093. The server listens for POST requests with 
@@ -15,6 +15,8 @@
  * alert, confirm, etc. The page will be evaluated, and the DOM
  * triggers will alert us of any suspicious JS.
 */
+var DEBUG = false
+
 var system = require('system');
 var fs = require('fs');
 
@@ -41,7 +43,10 @@ var port = '8093';
  * alert, confirm, fromCharCode, etc.
  */
 parsePage = function(data) {
-	console.log("Beginning to parse page");
+	if (DEBUG) {	
+		console.log("Beginning to parse page");
+	}
+
 	var html_response = "";
 	wp.content = data;
 
@@ -83,13 +88,21 @@ reInitializeWebPage = function() {
 		console.log("On alert: " + msg);
 		
 		xss.value = 1;
-		xss.msg += 'XSS found: Alert(' + msg + ')';
+		xss.msg += 'XSS found: alert(' + msg + ')';
 	};
 
-
 	wp.onConsoleMessage = function(msg) {
-		xss = true;
-	    console.log('console: ' + msg);
+		console.log("On alert: " + msg);
+		
+		xss.value = 1;
+		xss.msg += 'XSS found: console.log(' + msg + ')';
+	};
+
+	wp.onConfirm = function(msg) {
+		console.log("On alert: " + msg);
+		
+		xss.value = 1;
+		xss.msg += 'XSS found: confirm(' + msg + ')';
 	};
 
 	return wp;
@@ -101,12 +114,17 @@ var wp = reInitializeWebPage();
 
 // Start web server and listen for requests
 var service = server.listen(host + ":" + port, function(request, response) {
-	console.log("\nReceived request with method type: " + request.method);
+	
+	if(DEBUG) {
+		console.log("\nReceived request with method type: " + request.method);
+	}
 
 	// At this point in time we're only concerned with POST requests
 	// As such, only process those.
 	if(request.method == "POST") {
-		console.log("Processing Post Request");
+		if(DEBUG) {
+			console.log("Processing Post Request");
+		}
 
 		// Grab pageResponse from POST Data and base64 decode.
 		// pass result to parsePage function to search for XSS.
