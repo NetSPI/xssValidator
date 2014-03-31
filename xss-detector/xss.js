@@ -92,14 +92,14 @@ reInitializeWebPage = function() {
 	};
 
 	wp.onConsoleMessage = function(msg) {
-		console.log("On alert: " + msg);
+		console.log("On console.log: " + msg);
 		
 		xss.value = 1;
 		xss.msg += 'XSS found: console.log(' + msg + ')';
 	};
 
 	wp.onConfirm = function(msg) {
-		console.log("On alert: " + msg);
+		console.log("On confirm: " + msg);
 		
 		xss.value = 1;
 		xss.msg += 'XSS found: confirm(' + msg + ')';
