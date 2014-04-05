@@ -1,1 +1,1 @@
-web: phantomjs xss.js
+web: phantomjs xss-detector/xss.js
