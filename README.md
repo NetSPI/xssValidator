@@ -4,6 +4,8 @@ xssValidator
 This is a burp intruder extender that is designed for automation and validation of XSS
 vulnerabilities.
 
+For more information, check out this blog post: http://blog.nvisium.com/2014/01/accurate-xss-detection-with-burpsuite.html
+
 
 XSS Detection
 -------------
@@ -11,7 +13,7 @@ XSS Detection
 The burp intruder extender will be designed to forward responses to the XSS detection
 server, that will need to be running externally. 
 
-The XSS detection server is powered by Phantom.js and leverages webkit's XSS auditor.
+The XSS detection server is powered by Phantom.js and/or Slimer.js.
 
 The XSS detection is influenced by Trustwave's blog post: Server-Side XSS Attack Detection with ModSecurity and PhantomJS:http://blog.spiderlabs.com/2013/02/server-site-xss-attack-detection-with-modsecurity-and-phantomjs.html
 
@@ -38,11 +40,12 @@ After this has completed you should see a BUILD SUCCESSFUL message. The .jar fil
 Usage
 -----
 
-Before starting an attack it is necessary to start the phantom server. Navigate to the xss-detector directory and execute the following:
+Before starting an attack it is necessary to start the phantom and/or slimer xss-detection servers. Navigate to the xss-detector directory and execute the following to start phantom.js xss-detection script:
 
-	$ phantomjs xss.js 
+	$ phantomjs xss.js &
+	$ slimerjs slimer.js &
 
-The server will listen by default on port 8093. The server is expecting base64 encoded page responses passed via the http-response, which will be passed via the Burp extender. 
+The server is expecting base64 encoded page responses passed via the http-response, which will be passed via the Burp extender. 
 
 Examples
 --------
