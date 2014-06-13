@@ -40,7 +40,7 @@ parsePage = function(data) {
 	// Evaluate page, rendering javascript
 	xssInfo = wp.evaluate(function (wp) {
 		// Return information from page, if necessary
-	}, wp);
+	}), wp;
 
 	if(xss) {
 		// xss detected, return
@@ -61,6 +61,27 @@ reInitializeWebPage = function() {
 	xss.value = 0;
 	xss.msg = "";
 
+	wp.onAlert = function(msg) {
+		console.log("On alert: " + msg);
+		
+		xss.value = 1;
+		xss.msg += 'XSS found: alert(' + msg + ')';
+	};
+
+	wp.onConsoleMessage = function(msg) {
+		console.log("On console.log: " + msg);
+		
+		xss.value = 1;
+		xss.msg += 'XSS found: console.log(' + msg + ')';
+	};
+
+	wp.onConfirm = function(msg) {
+		console.log("On confirm: " + msg);
+		
+		xss.value = 1;
+		xss.msg += 'XSS found: confirm(' + msg + ')';
+	};
+
 	return wp;
 }
 
@@ -72,10 +93,6 @@ var service = require("webserver").create();
 
 service.listen(8094, function(request, response) {
 	if(DEBUG) {
-		console.log("\nReceived request with method type: " + request.method);
-	}
-
-		if(DEBUG) {
 		console.log("\nReceived request with method type: " + request.method);
 	}
 
