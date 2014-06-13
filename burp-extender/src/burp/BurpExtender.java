@@ -40,6 +40,7 @@ public class BurpExtender implements IBurpExtender, ITab, IHttpListener, IIntrud
     // User can adjust this location by using the xssValidator
     // tab within Burp.
     private static String phantomServer = "http://127.0.0.1:8093";
+    private static String slimerServer = "http://127.0.0.1:8094";
     
     // Trigger phrase is sent as the payload, and compared
     // when the payload is executed to ensure we're not
@@ -52,7 +53,7 @@ public class BurpExtender implements IBurpExtender, ITab, IHttpListener, IIntrud
     
     // Swing components
     public JPanel mainPanel, serverConfig;
-    public JTextField phantomURL, grepVal;
+    public JTextField phantomURL, slimerURL, grepVal;
     public JTabbedPane tabbedPane;
     public JButton btnAddText,btnSaveTabAsTemplate,btnRemoveTab;
 	
@@ -126,14 +127,21 @@ public class BurpExtender implements IBurpExtender, ITab, IHttpListener, IIntrud
                 
                 phantomURL = new JTextField(20);
                 phantomURL.setText(phantomServer);	
+
+                slimerURL = new JTextField(20);
+                slimerURL.setText(slimerServer);
                 
                 grepVal = new JTextField(20);
                 grepVal.setText(grepPhrase);
         	    
-                JLabel heading  = new JLabel("PhantomJS Server Settings");
+                JLabel phantomHeading  = new JLabel("PhantomJS Server Settings");
+                JLabel slimerHeading = new JLabel("Slimer Server Settings");
                 JLabel grepHeading = new JLabel("Grep Phrase");
-                serverConfig.add(heading);
+                serverConfig.add(phantomHeading);
                 serverConfig.add(phantomURL);
+
+                serverConfig.add(slimerHeading);
+                serverConfig.add(slimerURL);
                 
                 serverConfig.add(grepHeading);
                 serverConfig.add(grepVal);
@@ -197,8 +205,11 @@ public class BurpExtender implements IBurpExtender, ITab, IHttpListener, IIntrud
         if (toolFlag == 32 && messageIsRequest) {
         	// Manipulate intruder request, if necessary
         } else if (toolFlag == 32 && ! messageIsRequest) {
+
+        	// Send to PhantomJS Server for Processing
         	HttpPost PhantomJs = new HttpPost(phantomURL.getText());
-        	
+       		HttpPost SlimerJS = new HttpPost(slimerURL.getText());
+
         	try {
         		// Base64 encode the intruder response, then send to phantomJS
         		byte[] encodedBytes = Base64.encodeBase64(messageInfo.getResponse());
@@ -211,6 +222,35 @@ public class BurpExtender implements IBurpExtender, ITab, IHttpListener, IIntrud
 
 	        	// Retrieve response from phantomJS and process
 	        	HttpResponse response = client.execute(PhantomJs);
+	        	String responseAsString = EntityUtils.toString(response.getEntity());
+	            
+            	stdout.println("Response: " + responseAsString);
+            	
+	            // parse response for XSS by checking whether it contains 
+            	// the trigger phrase
+	            if(responseAsString.toLowerCase().contains(triggerPhrase.toLowerCase())) {
+	            	// Append weird string to identify XSS
+		            String newResponse = helpers.bytesToString(messageInfo.getResponse()) + grepVal.getText();
+	            	messageInfo.setResponse(helpers.stringToBytes(newResponse));
+	            	stdout.println("XSS Found");
+	            }
+	            
+        	} catch (Exception e) {
+        		stderr.println(e.getMessage());
+        	}
+
+        	try {
+        		// Base64 encode the intruder response, then send to slimerJS
+        		byte[] encodedBytes = Base64.encodeBase64(messageInfo.getResponse());
+        		String encodedResponse = helpers.bytesToString(encodedBytes);
+        		
+	        	List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>(1);
+	        	nameValuePairs.add(new BasicNameValuePair("http-response", encodedResponse));
+	        	
+	        	SlimerJS.setEntity(new UrlEncodedFormEntity(nameValuePairs));
+
+	        	// Retrieve response from slimerJS and process
+	        	HttpResponse response = client.execute(SlimerJS);
 	        	String responseAsString = EntityUtils.toString(response.getEntity());
 	            
             	stdout.println("Response: " + responseAsString);
