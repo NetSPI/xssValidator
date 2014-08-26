@@ -80,8 +80,8 @@ IIntruderPayloadGeneratorFactory, IIntruderPayloadProcessor {
             }
 
             payload = payload.replace(BurpExtender.JAVASCRIPT_PLACEHOLDER,
-                    this.functions[this.functionIndex] + "('"
-                            + BurpExtender.triggerPhrase + "')");
+                    this.functions[this.functionIndex] + "("
+                            + BurpExtender.triggerPhrase + ")");
 
 
             BurpExtender.this.stdout.println("Payload conversion: " + payload);
@@ -115,7 +115,7 @@ IIntruderPayloadGeneratorFactory, IIntruderPayloadProcessor {
 
     private static String         slimerServer             = "http://127.0.0.1:8094";
 
-    private static String         triggerPhrase            = "f7sdgfjFpoG";
+    private static String         triggerPhrase            = "299792458";
     private static String         grepPhrase               = "fy7sdufsuidfhuisdf";
     public JPanel                 mainPanel;
     public JPanel                 serverConfig;
