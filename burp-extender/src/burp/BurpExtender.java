@@ -1,6 +1,8 @@
 package burp;
 
 import java.awt.BorderLayout;
+import java.awt.GridLayout;
+import java.awt.Font;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.io.PrintWriter;
@@ -118,8 +120,12 @@ IIntruderPayloadGeneratorFactory, IIntruderPayloadProcessor {
 
     private static String         triggerPhrase            = "299792458";
     private static String         grepPhrase               = "fy7sdufsuidfhuisdf";
+    public JLabel                 htmlDescription;
     public JPanel                 mainPanel;
+    public JPanel                 leftPanel;
     public JPanel                 serverConfig;
+    public JPanel                 notice;
+    public JPanel                 rightPanel;
     public JTextField             phantomURL;
     public JTextField             slimerURL;
     public JTextField             grepVal;
@@ -304,25 +310,41 @@ IIntruderPayloadGeneratorFactory, IIntruderPayloadProcessor {
                 BurpExtender.this.eventHandlerTextfield
                 .setText("onmousemove,onmouseout,onmouseover");
 
-                String payloads = "";
-                for (byte[] bs:BurpExtender.PAYLOADS) {
-                    payloads += new String(bs) + "\r\n";
-                }
 
-                BurpExtender.this.attackStringsTextarea = new JTextArea(30, 50);
-                BurpExtender.this.attackStringsTextarea.setText(payloads);
-                // BurpExtender.this.attackStringsTextarea
-                // .setPreferredSize(new Dimension(600, 600));
-                BurpExtender.this.scrollingArea = new JScrollPane(
-                        BurpExtender.this.attackStringsTextarea,
-                        ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS,
-                        ScrollPaneConstants.HORIZONTAL_SCROLLBAR_ALWAYS);
+                BurpExtender.this.mainPanel = new JPanel(new GridLayout(1, 2));
+                BurpExtender.this.leftPanel = new JPanel(new GridLayout(2, 1));
+                BurpExtender.this.rightPanel = new JPanel();
 
-                BurpExtender.this.mainPanel = new JPanel(new BorderLayout());
+                /*
+                 * Notice Stuff
+                 */
+                BurpExtender.this.notice = new JPanel();
+                JLabel titleLabel = new JLabel("xssValidator");
+                titleLabel.setFont(new Font("Serif", Font.PLAIN, 20));
+                Dimension d = titleLabel.getPreferredSize();  
+                titleLabel.setPreferredSize(new Dimension(d.width+60,d.height));
+                String initialText = "<html>\n" +
+                "<em>xssValidator is an intruder extender with a customizable list of payloads, \n" +
+                "that couples<br />with the Phantom.js and Slimer.js scriptable browsers to provide validation<br />\n" +
+                "of cross-site scripting vulnerabilities.</em><br /><br />\n" +
+                "<b>Getting started:</b>\n" +
+                "<ul>\n" +
+                "    <li>Download latest version of xss-detectors from the git repository</li>\n" +
+                "    <li>Start the phantom server: phantomjs xss.js</li>\n" +
+                "    <li>Create a new intruder tab, select <em>Extension-generated</em> \n" +
+                "    payload.</li>" +
+                "    <li>Under the intruder options tab, add the <em>Grep Phrase</em> to \n" +
+                "    the <em>Grep-Match</em> panel</li>" +
+                "    <li>Successful attacks will be denoted by presence of the <em>Grep Phrase</em>\n" +
+                "</ul>\n";
+                BurpExtender.this.htmlDescription = new JLabel(initialText);
+                BurpExtender.this.notice.add(titleLabel);
+                BurpExtender.this.notice.add(BurpExtender.this.htmlDescription);
 
-                BurpExtender.this.serverConfig = new JPanel();
-                BurpExtender.this.serverConfig.setPreferredSize(new Dimension(
-                        400, 400));
+                /*
+                 Server Config
+                 */
+                BurpExtender.this.serverConfig = new JPanel(new GridLayout(5,2));
 
                 BurpExtender.this.phantomURL = new JTextField(20);
                 BurpExtender.this.phantomURL
@@ -337,6 +359,7 @@ IIntruderPayloadGeneratorFactory, IIntruderPayloadProcessor {
                 JLabel phantomHeading = new JLabel("PhantomJS Server Settings");
                 JLabel slimerHeading = new JLabel("Slimer Server Settings");
                 JLabel grepHeading = new JLabel("Grep Phrase");
+
                 BurpExtender.this.serverConfig.add(phantomHeading);
                 BurpExtender.this.serverConfig
                         .add(BurpExtender.this.phantomURL);
@@ -358,10 +381,34 @@ IIntruderPayloadGeneratorFactory, IIntruderPayloadProcessor {
                 BurpExtender.this.serverConfig
                 .add(BurpExtender.this.eventHandlerTextfield);
 
-                BurpExtender.this.serverConfig
+                /*
+                 * Right Panel
+                 */
+                String payloads = "";
+                for (byte[] bs:BurpExtender.PAYLOADS) {
+                    payloads += new String(bs) + "\r\n";
+                }
+
+                BurpExtender.this.attackStringsTextarea = new JTextArea(30, 50);
+                BurpExtender.this.attackStringsTextarea.setText(payloads);
+
+                BurpExtender.this.scrollingArea = new JScrollPane(
+                        BurpExtender.this.attackStringsTextarea,
+                        ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS,
+                        ScrollPaneConstants.HORIZONTAL_SCROLLBAR_ALWAYS);
+
+                JLabel payloadLabel = new JLabel("Payloads");
+                payloadLabel.setFont(new Font("Serif", Font.PLAIN, 18));
+                BurpExtender.this.rightPanel.add(payloadLabel);
+                BurpExtender.this.rightPanel
                         .add(BurpExtender.this.scrollingArea);
 
-                BurpExtender.this.mainPanel.add(BurpExtender.this.serverConfig);
+                BurpExtender.this.leftPanel.add(BurpExtender.this.notice);
+                BurpExtender.this.leftPanel.add(BurpExtender.this.serverConfig);
+
+
+                BurpExtender.this.mainPanel.add(BurpExtender.this.leftPanel);
+                BurpExtender.this.mainPanel.add(BurpExtender.this.rightPanel);
                 BurpExtender.this.mCallbacks
                         .customizeUiComponent(BurpExtender.this.mainPanel);
                 BurpExtender.this.mCallbacks.addSuiteTab(BurpExtender.this);
