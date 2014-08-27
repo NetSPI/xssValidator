@@ -1,5 +1,6 @@
-xssValidator
-============
+<p align="center">
+<img src="https://raw.githubusercontent.com/nVisium/xssValidator/gh-pages/images/xssValidator.png">
+</p>
 
 This is a burp intruder extender that is designed for automation and validation of XSS
 vulnerabilities.
