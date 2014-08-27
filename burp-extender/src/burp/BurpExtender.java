@@ -32,6 +32,7 @@ import burp.ITab;
 
 public class BurpExtender implements IBurpExtender, ITab, IHttpListener,
 IIntruderPayloadGeneratorFactory, IIntruderPayloadProcessor {
+    private static final String VERSION = "2.1.0";
 
     class IntruderPayloadGenerator implements IIntruderPayloadGenerator {
 
@@ -319,10 +320,9 @@ IIntruderPayloadGeneratorFactory, IIntruderPayloadProcessor {
                  * Notice Stuff
                  */
                 BurpExtender.this.notice = new JPanel();
-                JLabel titleLabel = new JLabel("xssValidator");
-                titleLabel.setFont(new Font("Serif", Font.PLAIN, 20));
-                Dimension d = titleLabel.getPreferredSize();  
-                titleLabel.setPreferredSize(new Dimension(d.width+60,d.height));
+                JLabel titleLabel = new JLabel("<html><center><h2>xssValidator</h2>Created By: <em>John Poulin</em> (@forced-request)<br />\n" +
+                    "Version: " + BurpExtender.this.VERSION + "</center><br />");
+
                 String initialText = "<html>\n" +
                 "<em>xssValidator is an intruder extender with a customizable list of payloads, \n" +
                 "that couples<br />with the Phantom.js and Slimer.js scriptable browsers to provide validation<br />\n" +
@@ -336,7 +336,7 @@ IIntruderPayloadGeneratorFactory, IIntruderPayloadProcessor {
                 "    <li>Under the intruder options tab, add the <em>Grep Phrase</em> to \n" +
                 "    the <em>Grep-Match</em> panel</li>" +
                 "    <li>Successful attacks will be denoted by presence of the <em>Grep Phrase</em>\n" +
-                "</ul>\n";
+                "</ul>\n"; 
                 BurpExtender.this.htmlDescription = new JLabel(initialText);
                 BurpExtender.this.notice.add(titleLabel);
                 BurpExtender.this.notice.add(BurpExtender.this.htmlDescription);
@@ -397,8 +397,11 @@ IIntruderPayloadGeneratorFactory, IIntruderPayloadProcessor {
                         ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS,
                         ScrollPaneConstants.HORIZONTAL_SCROLLBAR_ALWAYS);
 
-                JLabel payloadLabel = new JLabel("Payloads");
-                payloadLabel.setFont(new Font("Serif", Font.PLAIN, 18));
+                JLabel payloadLabel = new JLabel("<html><center><h3>Payloads</h3>Custom Payloads \n" +
+                        "can be defined here, seperated by linebreaks.<Br /></center><ul><li><b>{JAVASCRIPT}</b>\n" +
+                        "placeholders define the location of the Javascript function.</li>\n" +
+                        "<li><b>{EVENTHANDLER}</b> placeholders define location of Javascript events, <br />\n" +
+                        "such as onmouseover, that are tested via scriptable browsers.</li></ul>");
                 BurpExtender.this.rightPanel.add(payloadLabel);
                 BurpExtender.this.rightPanel
                         .add(BurpExtender.this.scrollingArea);
