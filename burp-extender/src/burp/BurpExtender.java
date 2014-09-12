@@ -212,17 +212,32 @@ IIntruderPayloadGeneratorFactory, IIntruderPayloadProcessor {
 
         if ((toolFlag != 32) || (!messageIsRequest)) {
             if ((toolFlag == 32) && (!messageIsRequest)) {
+
+                byte[] intruderRequest = messageInfo.getRequest();
+                String lines[] = this.helpers.bytesToString(intruderRequest).split("\\r?\\n");
+                String intruderURL = lines[0];
+                String intruderHost = lines[1];
+                intruderURL = intruderURL.replace("POST ","").replace("GET ","").replace(" HTTP/1.1","").replace(" HTTP/1.0","");
+                intruderURL = intruderHost + intruderURL;
+                
                 HttpPost PhantomJs = new HttpPost(this.phantomURL.getText());
                 HttpPost SlimerJS = new HttpPost(this.slimerURL.getText());
                 try {
+                    // Encode page Response
                     byte[] encodedBytes = Base64.encodeBase64(messageInfo
                             .getResponse());
                     String encodedResponse = this.helpers
                             .bytesToString(encodedBytes);
 
-                    List nameValuePairs = new ArrayList(1);
+                    // Encode URL
+                    byte[] encodedURLBytes = Base64.encodeBase64(intruderURL.getBytes());
+                    String encodedURL = this.helpers.bytesToString(encodedURLBytes);
+
+                    List nameValuePairs = new ArrayList(2);
                     nameValuePairs.add(new BasicNameValuePair("http-response",
                             encodedResponse));
+                    nameValuePairs.add(new BasicNameValuePair("http-url",
+                        encodedURL));
 
                     PhantomJs
                     .setEntity(new UrlEncodedFormEntity(nameValuePairs));

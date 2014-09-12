@@ -15,7 +15,7 @@
  * alert, confirm, etc. The page will be evaluated, and the DOM
  * triggers will alert us of any suspicious JS.
 */
-var DEBUG = false
+var DEBUG = true
 
 var system = require('system');
 var fs = require('fs');
@@ -36,26 +36,23 @@ var port = '8093';
 /**
  * parse incoming HTTP responses that are provided via BURP intruder.
  * data is base64 encoded to prevent issues passing via HTTP.
- *
- * This function appends the js-overrides.js file to all responses
- * to inject xss triggers into every page. Webkit will parse all responses
- * and alert us of any seemingly malicious Javascript execution, such as
- * alert, confirm, fromCharCode, etc.
  */
-parsePage = function(data) {
+parsePage = function(data,url) {
 	if (DEBUG) {	
 		console.log("Beginning to parse page");
+		console.log("\tURL: " + url);
 	}
 
 	var html_response = "";
-	wp.content = data;
+	wp.setContent(data, decodeURIComponent(url));
 
 	// Evaluate page, rendering javascript
-
-	xssInfo = wp.evaluate(function (wp) {
+	xssInfo = wp.evaluate(function (wp) {				
                 var tags = ["a", "abbr", "acronym", "address", "applet", "area", "article", "aside", "audio", "audioscope", "b", "base", "basefont", "bdi", "bdo", "bgsound", "big", "blackface", "blink", "blockquote", "body", "bq", "br", "button", "canvas", "caption", "center", "cite", "code", "col", "colgroup", "command", "comment", "datalist", "dd", "del", "details", "dfn", "dir", "div", "dl", "dt", "em", "embed", "fieldset", "figcaption", "figure", "fn", "font", "footer", "form", "frame", "frameset", "h1", "h2", "h3", "h4", "h5", "h6", "head", "header", "hgroup", "hr", "html", "i", "iframe", "ilayer", "img", "input", "ins", "isindex", "kbd", "keygen", "label", "layer", "legend", "li", "limittext", "link", "listing", "map", "mark", "marquee", "menu", "meta", "meter", "multicol", "nav", "nobr", "noembed", "noframes", "noscript", "nosmartquotes", "object", "ol", "optgroup", "option", "output", "p", "param", "plaintext", "pre", "progress", "q", "rp", "rt", "ruby", "s", "samp", "script", "section", "select", "server", "shadow", "sidebar", "small", "source", "spacer", "span", "strike", "strong", "style", "sub", "sup", "table", "tbody", "td", "textarea", "tfoot", "th", "thead", "time", "title", "tr", "tt", "u", "ul", "var", "video", "wbr", "xml", "xmp"];
                 var eventHandler = ["mousemove","mouseout","mouseover"]
 
+                // Search document for interactive HTML elements, and hover over each
+                // In attempt to trigger event handlers.
                 tags.forEach(function(tag) {
                         currentTags = document.querySelector(tag);
                         if (currentTags !== null){
@@ -67,6 +64,7 @@ parsePage = function(data) {
                         }
                 });
 		// Return information from page, if necessary
+		return document;
 	}, wp);
 
 	if(xss) {
@@ -150,8 +148,10 @@ var service = server.listen(host + ":" + port, function(request, response) {
 		// Grab pageResponse from POST Data and base64 decode.
 		// pass result to parsePage function to search for XSS.
 		var pageResponse = request.post['http-response'];
+		var pageUrl = request.post['http-url'];
 		pageResponse = atob(pageResponse);
-		xssResults = parsePage(pageResponse);
+		pageUrl = atob(pageUrl);
+		xssResults = parsePage(pageResponse,pageUrl);
 
 		// Return XSS Results
 		if(xssResults) {
@@ -166,7 +166,7 @@ var service = server.listen(host + ":" + port, function(request, response) {
 		}
 	} else {
 		response.statusCode = 500;
-		response.write("Server is only designed to handle GET requests");
+		response.write("Server is only designed to handle POST requests");
 		response.close();
 	}
 
