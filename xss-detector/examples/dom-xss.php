@@ -1,8 +1,9 @@
 <html>
 <body>
-	<script>
-		var name = "<?php echo $_GET['name']; ?>";
-		document.write("hello: " + name);
-	</script>
+Hello
+<script>
+var pos=document.URL.indexOf("context=")+8; 
+document.write(decodeURIComponent(document.URL.substring(pos,document.URL.length)));
+</script>
 </body>
 </html>
