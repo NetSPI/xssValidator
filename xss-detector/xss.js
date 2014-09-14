@@ -45,6 +45,7 @@ parsePage = function(data,url) {
 
 	var html_response = "";
 	wp.setContent(data, decodeURIComponent(url));
+	//wp.cookies = cookies;
 
 	// Evaluate page, rendering javascript
 	xssInfo = wp.evaluate(function (wp) {				
@@ -141,17 +142,22 @@ var service = server.listen(host + ":" + port, function(request, response) {
 	// At this point in time we're only concerned with POST requests
 	// As such, only process those.
 	if(request.method == "POST") {
-		if(DEBUG) {
-			console.log("Processing Post Request");
-		}
-
 		// Grab pageResponse from POST Data and base64 decode.
 		// pass result to parsePage function to search for XSS.
 		var pageResponse = request.post['http-response'];
 		var pageUrl = request.post['http-url'];
+		//var cookies = request.post['cookies'];
 		pageResponse = atob(pageResponse);
 		pageUrl = atob(pageUrl);
+		//cookies = atob(cookies);
+
+		if(DEBUG) {
+			console.log("Processing Post Request");
+			console.log("\t" + pageUrl);
+		}
+
 		xssResults = parsePage(pageResponse,pageUrl);
+		//xssResults = parsePage(pageResponse,pageUrl,cookies);
 
 		// Return XSS Results
 		if(xssResults) {

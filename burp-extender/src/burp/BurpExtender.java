@@ -1,5 +1,7 @@
 package burp;
 
+import java.util.regex.*;
+
 import java.awt.BorderLayout;
 import java.awt.GridLayout;
 import java.awt.Font;
@@ -207,18 +209,51 @@ IIntruderPayloadGeneratorFactory, IIntruderPayloadProcessor {
         return this.mainPanel;
     }
 
+    /**
+    * Parse URL and cookie values from intruderRequest
+    * return for use in xss-detectors
+    */
+    public String fetchRequestVals(byte[] intruderRequest) {
+        String request = this.helpers.bytesToString(intruderRequest);
+
+        // This is a better regex, ^[GET|POST] (.*) HTTP\/[\d.\d]$
+        //String urlPattern = "(GET|POST) (.*) HTTP";
+        String urlPattern = "(GET|POST) (.*)";
+        String hostPattern = "Host: (.*)";
+        //String cookiePattern = "$[C|c]ookie: (.*)$";
+        Pattern url = Pattern.compile(urlPattern);
+        Pattern host = Pattern.compile(hostPattern);
+        //Pattern cookie = Pattern.compile(cookiePattern);
+        Matcher urlMatcher = url.matcher(request);
+        Matcher hostMatcher = host.matcher(request);
+        //Matcher cookieMatcher = cookie.matcher
+
+        String intruderUrl = "";
+        String intruderHost = "";
+
+        // Find specific values
+        while (urlMatcher.find()) {
+            intruderUrl = urlMatcher.group(2); 
+        }
+
+        while(hostMatcher.find()) {
+            intruderHost = hostMatcher.group(1);
+        }
+
+        intruderUrl = intruderHost + intruderUrl;
+        this.stdout.println("URL: " + intruderUrl);
+        //Get Cookie [C|c]ookie: (.*)$
+        return intruderUrl;
+    }
+
     public void processHttpMessage(int toolFlag, boolean messageIsRequest,
             IHttpRequestResponse messageInfo) {
 
         if ((toolFlag != 32) || (!messageIsRequest)) {
             if ((toolFlag == 32) && (!messageIsRequest)) {
 
-                byte[] intruderRequest = messageInfo.getRequest();
-                String lines[] = this.helpers.bytesToString(intruderRequest).split("\\r?\\n");
-                String intruderURL = lines[0];
-                String intruderHost = lines[1];
-                intruderURL = intruderURL.replace("POST ","").replace("GET ","").replace(" HTTP/1.1","").replace(" HTTP/1.0","");
-                intruderURL = intruderHost + intruderURL;
+                String intruderURL = fetchRequestVals(messageInfo.getRequest());
+            
                 
                 HttpPost PhantomJs = new HttpPost(this.phantomURL.getText());
                 HttpPost SlimerJS = new HttpPost(this.slimerURL.getText());
