@@ -34,6 +34,22 @@ var host = '127.0.0.1';
 var port = '8093';
 
 /**
+ * Split cookies by semicolon and add each cookie to the webpage
+ * object separately.
+ */
+parseCookies = function(cookies, wp) {
+	cookieArray = cookies.split(";");
+	for (var i = 0; i < cookieArray.length; i++) {
+		cookieArgs = cookieArray[i].split("=");
+    	wp.addCookie({
+    		'name': cookieArgs[0],
+    		'value': cookieArgs[1]
+    	});
+	}
+	return wp;
+}
+
+/**
  * parse incoming HTTP responses that are provided via BURP intruder.
  * data is base64 encoded to prevent issues passing via HTTP.
  */
@@ -46,7 +62,9 @@ parsePage = function(data,url,cookies) {
 
 	var html_response = "";
 	wp.setContent(data, decodeURIComponent(url));
-	wp.cookies = cookies;
+
+	// Parse cookies from intruder and add to request
+	wp = parseCookies(cookies,wp);
 
 	// Evaluate page, rendering javascript
 	xssInfo = wp.evaluate(function (wp) {				
