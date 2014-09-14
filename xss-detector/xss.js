@@ -37,15 +37,16 @@ var port = '8093';
  * parse incoming HTTP responses that are provided via BURP intruder.
  * data is base64 encoded to prevent issues passing via HTTP.
  */
-parsePage = function(data,url) {
+parsePage = function(data,url,cookies) {
 	if (DEBUG) {	
 		console.log("Beginning to parse page");
 		console.log("\tURL: " + url);
+		console.log("\tCookies: " + cookies);
 	}
 
 	var html_response = "";
 	wp.setContent(data, decodeURIComponent(url));
-	//wp.cookies = cookies;
+	wp.cookies = cookies;
 
 	// Evaluate page, rendering javascript
 	xssInfo = wp.evaluate(function (wp) {				
@@ -146,18 +147,17 @@ var service = server.listen(host + ":" + port, function(request, response) {
 		// pass result to parsePage function to search for XSS.
 		var pageResponse = request.post['http-response'];
 		var pageUrl = request.post['http-url'];
-		//var cookies = request.post['cookies'];
+		var pageCookies = request.post['http-cookies'];
+
 		pageResponse = atob(pageResponse);
 		pageUrl = atob(pageUrl);
-		//cookies = atob(cookies);
+		cookies = atob(pageCookies);
 
 		if(DEBUG) {
 			console.log("Processing Post Request");
-			console.log("\t" + pageUrl);
 		}
 
-		xssResults = parsePage(pageResponse,pageUrl);
-		//xssResults = parsePage(pageResponse,pageUrl,cookies);
+		xssResults = parsePage(pageResponse,pageUrl,cookies);
 
 		// Return XSS Results
 		if(xssResults) {

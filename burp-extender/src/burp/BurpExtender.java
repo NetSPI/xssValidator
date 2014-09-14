@@ -213,23 +213,22 @@ IIntruderPayloadGeneratorFactory, IIntruderPayloadProcessor {
     * Parse URL and cookie values from intruderRequest
     * return for use in xss-detectors
     */
-    public String fetchRequestVals(byte[] intruderRequest) {
+    public String[] fetchRequestVals(byte[] intruderRequest) {
         String request = this.helpers.bytesToString(intruderRequest);
 
-        // This is a better regex, ^[GET|POST] (.*) HTTP\/[\d.\d]$
-        //String urlPattern = "(GET|POST) (.*) HTTP";
-        String urlPattern = "(GET|POST) (.*)";
+        String urlPattern = "(GET|POST) (.*) ";
         String hostPattern = "Host: (.*)";
-        //String cookiePattern = "$[C|c]ookie: (.*)$";
+        String cookiePattern = "[C|c]ookie: (.*)";
         Pattern url = Pattern.compile(urlPattern);
         Pattern host = Pattern.compile(hostPattern);
-        //Pattern cookie = Pattern.compile(cookiePattern);
+        Pattern cookie = Pattern.compile(cookiePattern);
         Matcher urlMatcher = url.matcher(request);
         Matcher hostMatcher = host.matcher(request);
-        //Matcher cookieMatcher = cookie.matcher
+        Matcher cookieMatcher = cookie.matcher(request);
 
         String intruderUrl = "";
         String intruderHost = "";
+        String cookies = "";
 
         // Find specific values
         while (urlMatcher.find()) {
@@ -240,10 +239,16 @@ IIntruderPayloadGeneratorFactory, IIntruderPayloadProcessor {
             intruderHost = hostMatcher.group(1);
         }
 
+        while(cookieMatcher.find()) {
+            cookies = cookieMatcher.group(1);
+        }
+
         intruderUrl = intruderHost + intruderUrl;
-        this.stdout.println("URL: " + intruderUrl);
-        //Get Cookie [C|c]ookie: (.*)$
-        return intruderUrl;
+
+        String[] requestVals = new String[2];
+        requestVals[0] = intruderUrl;
+        requestVals[1] = cookies;
+        return requestVals;
     }
 
     public void processHttpMessage(int toolFlag, boolean messageIsRequest,
@@ -252,7 +257,10 @@ IIntruderPayloadGeneratorFactory, IIntruderPayloadProcessor {
         if ((toolFlag != 32) || (!messageIsRequest)) {
             if ((toolFlag == 32) && (!messageIsRequest)) {
 
-                String intruderURL = fetchRequestVals(messageInfo.getRequest());
+                // Grab request information from messageInfo.getRequest()
+                String[] requestInfo = fetchRequestVals(messageInfo.getRequest());
+                String intruderURL = requestInfo[0];
+                String cookies = requestInfo[1];
             
                 
                 HttpPost PhantomJs = new HttpPost(this.phantomURL.getText());
@@ -268,11 +276,17 @@ IIntruderPayloadGeneratorFactory, IIntruderPayloadProcessor {
                     byte[] encodedURLBytes = Base64.encodeBase64(intruderURL.getBytes());
                     String encodedURL = this.helpers.bytesToString(encodedURLBytes);
 
-                    List nameValuePairs = new ArrayList(2);
+                    // Encode Cookies
+                    byte[] encodedCookiesBytes = Base64.encodeBase64(cookies.getBytes());
+                    String encodedCookies = this.helpers.bytesToString(encodedCookiesBytes);
+
+                    List nameValuePairs = new ArrayList(3);
                     nameValuePairs.add(new BasicNameValuePair("http-response",
                             encodedResponse));
                     nameValuePairs.add(new BasicNameValuePair("http-url",
                         encodedURL));
+                    nameValuePairs.add(new BasicNameValuePair("http-cookies",
+                        encodedCookies));
 
                     PhantomJs
                     .setEntity(new UrlEncodedFormEntity(nameValuePairs));
