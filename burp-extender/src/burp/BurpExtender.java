@@ -216,7 +216,7 @@ IIntruderPayloadGeneratorFactory, IIntruderPayloadProcessor {
     public String[] fetchRequestVals(byte[] intruderRequest) {
         String request = this.helpers.bytesToString(intruderRequest);
 
-        String urlPattern = "(GET|POST) (.*) ";
+        String urlPattern = "(GET|POST) (.*) H";
         String hostPattern = "Host: (.*)";
         String cookiePattern = "[C|c]ookie: (.*)";
         Pattern url = Pattern.compile(urlPattern);
@@ -451,7 +451,7 @@ IIntruderPayloadGeneratorFactory, IIntruderPayloadProcessor {
                  */
                 String payloads = "";
                 for (byte[] bs:BurpExtender.PAYLOADS) {
-                    payloads += new String(bs) + "\r\n";
+                    payloads += new String(bs) + "\n";
                 }
 
                 BurpExtender.this.attackStringsTextarea = new JTextArea(30, 50);
