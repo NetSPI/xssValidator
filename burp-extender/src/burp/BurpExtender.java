@@ -213,7 +213,7 @@ IIntruderPayloadGeneratorFactory, IIntruderPayloadProcessor {
     * Parse URL and cookie values from intruderRequest
     * return for use in xss-detectors
     */
-    public String[] fetchRequestVals(byte[] intruderRequest) {
+    public String[] fetchRequestVals(byte[] intruderRequest, String proto) {
         String request = this.helpers.bytesToString(intruderRequest);
 
         String urlPattern = "(GET|POST) (.*) H";
@@ -242,8 +242,7 @@ IIntruderPayloadGeneratorFactory, IIntruderPayloadProcessor {
         while(cookieMatcher.find()) {
             cookies = cookieMatcher.group(1);
         }
-
-        intruderUrl = intruderHost + intruderUrl;
+        intruderUrl = proto + "://" + intruderHost + intruderUrl;
 
         String[] requestVals = new String[2];
         requestVals[0] = intruderUrl;
@@ -258,7 +257,7 @@ IIntruderPayloadGeneratorFactory, IIntruderPayloadProcessor {
             if ((toolFlag == 32) && (!messageIsRequest)) {
 
                 // Grab request information from messageInfo.getRequest()
-                String[] requestInfo = fetchRequestVals(messageInfo.getRequest());
+                String[] requestInfo = fetchRequestVals(messageInfo.getRequest(), messageInfo.getHttpService().getProtocol());
                 String intruderURL = requestInfo[0];
                 String cookies = requestInfo[1];
             
