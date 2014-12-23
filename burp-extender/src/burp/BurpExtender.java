@@ -8,6 +8,7 @@ import java.awt.Dimension;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
+import java.net.URL;
 
 import javax.swing.JButton;
 import javax.swing.JLabel;
@@ -31,88 +32,8 @@ import org.apache.http.util.EntityUtils;
 import burp.ITab;
 
 public class BurpExtender implements IBurpExtender, ITab, IHttpListener,
-IIntruderPayloadGeneratorFactory, IIntruderPayloadProcessor {
-    private static final String VERSION = "1.2.0";
-
-    class IntruderPayloadGenerator implements IIntruderPayloadGenerator {
-
-        int          payloadIndex;
-        String[]     functions         = {"alert", "console.log", "confirm",
-                                               "prompt"};
-        String[]     eventHandler      = null;
-        int          functionIndex     = 0;
-        int          eventHandlerIndex = 0;
-        BurpExtender extenderInstance  = null;
-        String[]     PAYLOADS          = null;
-
-        IntruderPayloadGenerator(BurpExtender extenderInstance) {
-
-            this.extenderInstance = extenderInstance;
-            this.functions = extenderInstance.functionsTextfield.getText()
-                    .split(",");
-            this.eventHandler = extenderInstance.eventHandlerTextfield
-                    .getText().split(",");
-
-            // Add extra newline before processing to ensure that we can
-            // grab the last item from the list.
-            
-            String payloads = extenderInstance.attackStringsTextarea.getText() + "\n";
-            this.PAYLOADS = payloads.split("\n");
-
-        }
-
-        public byte[] getNextPayload(byte[] baseValue) {
-
-            if ((this.eventHandler.length > 0)
-                    && (this.eventHandlerIndex >= this.eventHandler.length)) {
-                this.eventHandlerIndex = 0;
-                this.functionIndex += 1;
-            }
-
-            if (this.functionIndex >= this.functions.length) {
-                this.functionIndex = 0;
-                this.eventHandlerIndex = 0;
-                this.payloadIndex += 1;
-            }
-
-            String payload = this.PAYLOADS[this.payloadIndex];
-            boolean eventhandlerIsUsed = payload
-                    .contains(BurpExtender.EVENTHANDLER_PLACEHOLDER);
-
-
-            // String nextPayload = new String(payload);
-            if (eventhandlerIsUsed) {
-                payload = payload.replace(
-                        BurpExtender.EVENTHANDLER_PLACEHOLDER,
-                        this.eventHandler[this.eventHandlerIndex]);
-            }
-
-            payload = payload.replace(BurpExtender.JAVASCRIPT_PLACEHOLDER,
-                    this.functions[this.functionIndex] + "("
-                            + BurpExtender.triggerPhrase + ")");
-
-
-            BurpExtender.this.stdout.println("Payload conversion: " + payload);
-
-            if (!eventhandlerIsUsed) {
-                this.functionIndex += 1;
-            }
-            else {
-                this.eventHandlerIndex += 1;
-            }
-            return payload.getBytes();
-        }
-
-        public boolean hasMorePayloads() {
-
-            return this.payloadIndex < BurpExtender.PAYLOADS.length;
-        }
-
-        public void reset() {
-
-            this.payloadIndex = 0;
-        }
-    }
+IIntruderPayloadGeneratorFactory, IIntruderPayloadProcessor, IScannerCheck {
+    private static final String VERSION = "1.3.0";
 
     public IBurpExtenderCallbacks mCallbacks;
     private IExtensionHelpers     helpers;
@@ -123,8 +44,8 @@ IIntruderPayloadGeneratorFactory, IIntruderPayloadProcessor {
 
     private static String         slimerServer             = "http://127.0.0.1:8094";
 
-    private static String         triggerPhrase            = "299792458";
-    private static String         grepPhrase               = "fy7sdufsuidfhuisdf";
+    public static String         triggerPhrase            = "299792458";
+    public static String         grepPhrase               = "fy7sdufsuidfhuisdf";
     public JLabel                 htmlDescription;
     public JPanel                 mainPanel;
     public JPanel                 leftPanel;
@@ -287,6 +208,145 @@ IIntruderPayloadGeneratorFactory, IIntruderPayloadProcessor {
                 .bytesToString(currentPayload)));
     }
 
+    @Override
+    public List<IScanIssue> doPassiveScan(IHttpRequestResponse baseRequestResponse) {
+        /*
+         * Currently not supporting passive scans.
+         * The eventual plan is to keep a running log of all dynamically
+         * generated trigger phrases. This will allow us to compare each xss-detector
+         * response with the ongoing list to see if any previous payloads are executed.
+         * This will be useful in detecting stored XSS.
+         */
+        return null;
+
+    }
+
+    @Override
+    public List<IScanIssue> doActiveScan(IHttpRequestResponse baseRequestResponse, IScannerInsertionPoint insertionPoint) {
+        IntruderPayloadGenerator payloadGenerator = new IntruderPayloadGenerator(this);
+        BurpExtender.this.stdout.println("Beginning active scan with xssValidator");
+        // Prepare to start attacks
+        while(payloadGenerator.hasMorePayloads()) {
+            byte[] payload = payloadGenerator.getNextPayload(new byte[1]);
+            byte[] checkRequest = insertionPoint.buildRequest(payload);
+            IHttpRequestResponse messageInfo = mCallbacks.makeHttpRequest(
+                baseRequestResponse.getHttpService(), checkRequest);
+
+            // Too much code duplication, but for now it's ok
+            HttpPost PhantomJs = new HttpPost(this.phantomURL.getText());
+            HttpPost SlimerJS = new HttpPost(this.slimerURL.getText());
+
+            Boolean vulnerable = false;
+
+            try {
+                byte[] encodedBytes = Base64.encodeBase64(messageInfo
+                        .getResponse());
+                String encodedResponse = this.helpers
+                        .bytesToString(encodedBytes);
+
+                List nameValuePairs = new ArrayList(1);
+                nameValuePairs.add(new BasicNameValuePair("http-response",
+                        encodedResponse));
+
+                PhantomJs
+                .setEntity(new UrlEncodedFormEntity(nameValuePairs));
+
+                HttpResponse response = this.client.execute(PhantomJs);
+                String responseAsString = EntityUtils.toString(response
+                        .getEntity());
+
+                this.stdout.println("Response: " + responseAsString);
+
+                if (responseAsString.toLowerCase().contains(
+                        BurpExtender.triggerPhrase.toLowerCase())) {
+                    String newResponse = this.helpers
+                            .bytesToString(messageInfo.getResponse())
+                            + this.grepVal.getText();
+                    messageInfo.setResponse(this.helpers
+                            .stringToBytes(newResponse));
+                    this.stdout.println("XSS Found");
+                    vulnerable = true;
+
+                }
+            }catch (Exception e) {
+                this.stderr.println(e.getMessage());
+            }
+
+            try {
+                byte[] encodedBytes = Base64.encodeBase64(messageInfo
+                        .getResponse());
+                String encodedResponse = this.helpers
+                        .bytesToString(encodedBytes);
+
+                List nameValuePairs = new ArrayList(1);
+                nameValuePairs.add(new BasicNameValuePair("http-response",
+                        encodedResponse));
+
+                SlimerJS.setEntity(new UrlEncodedFormEntity(nameValuePairs));
+
+                HttpResponse response = this.client.execute(SlimerJS);
+                String responseAsString = EntityUtils.toString(response
+                        .getEntity());
+
+                this.stdout.println("Response: " + responseAsString);
+
+                if (responseAsString.toLowerCase().contains(
+                        BurpExtender.triggerPhrase.toLowerCase())) {
+                    String newResponse = this.helpers
+                            .bytesToString(messageInfo.getResponse())
+                            + this.grepVal.getText();
+                    messageInfo.setResponse(this.helpers
+                            .stringToBytes(newResponse));
+                    this.stdout.println("XSS Found");
+                    vulnerable = true;
+                }
+            }catch (Exception e) {
+                this.stderr.println(e.getMessage());
+            }
+
+            // Update this to actually detect matches
+            List<int[]> matches = new ArrayList<int[]>();
+            byte[] response = baseRequestResponse.getResponse();
+            matches.add(new int[] { 0, 1 });
+
+            if(vulnerable) {
+                String payloadStr = new String(payload);
+                 // get the offsets of the payload within the request, for in-UI highlighting
+                List<int[]> requestHighlights = new ArrayList<>(1);
+                requestHighlights.add(insertionPoint.getPayloadOffsets(payload));
+
+                // report the issue
+                List<IScanIssue> issues = new ArrayList<>(1);
+                issues.add(new CustomScanIssue(
+                        baseRequestResponse.getHttpService(),
+                        helpers.analyzeRequest(baseRequestResponse).getUrl(), 
+                        new IHttpRequestResponse[] { mCallbacks.applyMarkers(messageInfo, requestHighlights, matches) }, 
+                        "Cross-Site Scripting (xssValidator)",
+                        "xssValidator has determined that the application is vulnerable to reflected Cross-Site Scripting by injecting " +
+                        "the payload into the application successfully. When executed within a scriptable browser " +
+                        "the payload was found to execute, validating the vulnerability.",
+                        "High"));
+                return issues;
+            }
+        }
+        return null;
+    }
+
+    @Override
+    public int consolidateDuplicateIssues(IScanIssue existingIssue, IScanIssue newIssue) {
+        // This method is called when multiple issues are reported for the same URL 
+        // path by the same extension-provided check. The value we return from this 
+        // method determines how/whether Burp consolidates the multiple issues
+        // to prevent duplication
+        //
+        // Since the issue name is sufficient to identify our issues as different,
+        // if both issues have the same name, only report the existing issue
+        // otherwise report both issues
+        if (existingIssue.getIssueName().equals(newIssue.getIssueName()))
+            return -1;
+        else return 0;
+    }
+
     public void registerExtenderCallbacks(IBurpExtenderCallbacks callbacks) {
 
         this.mCallbacks = callbacks;
@@ -299,6 +359,7 @@ IIntruderPayloadGeneratorFactory, IIntruderPayloadProcessor {
         callbacks.registerIntruderPayloadGeneratorFactory(this);
         callbacks.registerIntruderPayloadProcessor(this);
         callbacks.registerHttpListener(this);
+        callbacks.registerScannerCheck(this);
 
         SwingUtilities.invokeLater(new Runnable() {
 
@@ -419,4 +480,179 @@ IIntruderPayloadGeneratorFactory, IIntruderPayloadProcessor {
             }
         });
     }
+
+    class IntruderPayloadGenerator implements IIntruderPayloadGenerator {
+
+    int          payloadIndex;
+    String[]     functions         = {"alert", "console.log", "confirm",
+                                           "prompt"};
+    String[]     eventHandler      = null;
+    int          functionIndex     = 0;
+    int          eventHandlerIndex = 0;
+    BurpExtender extenderInstance  = null;
+    String[]     PAYLOADS          = null;
+
+    IntruderPayloadGenerator(BurpExtender extenderInstance) {
+
+        this.extenderInstance = extenderInstance;
+        this.functions = extenderInstance.functionsTextfield.getText()
+                .split(",");
+        this.eventHandler = extenderInstance.eventHandlerTextfield
+                .getText().split(",");
+
+        // Add extra newline before processing to ensure that we can
+        // grab the last item from the list.
+        
+        String payloads = extenderInstance.attackStringsTextarea.getText() + "\n";
+        this.PAYLOADS = payloads.split("\n");
+
+    }
+
+    public byte[] getNextPayload(byte[] baseValue) {
+
+        if ((this.eventHandler.length > 0)
+                && (this.eventHandlerIndex >= this.eventHandler.length)) {
+            this.eventHandlerIndex = 0;
+            this.functionIndex += 1;
+        }
+
+        if (this.functionIndex >= this.functions.length) {
+            this.functionIndex = 0;
+            this.eventHandlerIndex = 0;
+            this.payloadIndex += 1;
+        }
+
+        String payload = this.PAYLOADS[this.payloadIndex];
+        boolean eventhandlerIsUsed = payload
+                .contains(BurpExtender.EVENTHANDLER_PLACEHOLDER);
+
+
+        // String nextPayload = new String(payload);
+        if (eventhandlerIsUsed) {
+            payload = payload.replace(
+                    BurpExtender.EVENTHANDLER_PLACEHOLDER,
+                    this.eventHandler[this.eventHandlerIndex]);
+        }
+
+        payload = payload.replace(BurpExtender.JAVASCRIPT_PLACEHOLDER,
+                this.functions[this.functionIndex] + "("
+                        + BurpExtender.triggerPhrase + ")");
+
+
+        BurpExtender.this.stdout.println("Payload conversion: " + payload);
+
+        if (!eventhandlerIsUsed) {
+            this.functionIndex += 1;
+        }
+        else {
+            this.eventHandlerIndex += 1;
+        }
+        return payload.getBytes();
+    }
+
+    public boolean hasMorePayloads() {
+
+        return this.payloadIndex < BurpExtender.PAYLOADS.length;
+    }
+
+    public void reset() {
+
+        this.payloadIndex = 0;
+    }
+}
+}
+
+//
+// class implementing IScanIssue to hold our custom scan issue details
+//
+class CustomScanIssue implements IScanIssue
+{
+    private IHttpService httpService;
+    private URL url;
+    private IHttpRequestResponse[] httpMessages;
+    private String name;
+    private String detail;
+    private String severity;
+
+    public CustomScanIssue(
+            IHttpService httpService,
+            URL url, 
+            IHttpRequestResponse[] httpMessages, 
+            String name,
+            String detail,
+            String severity)
+    {
+        this.httpService = httpService;
+        this.url = url;
+        this.httpMessages = httpMessages;
+        this.name = name;
+        this.detail = detail;
+        this.severity = severity;
+    }
+    
+    @Override
+    public URL getUrl()
+    {
+        return url;
+    }
+
+    @Override
+    public String getIssueName()
+    {
+        return name;
+    }
+
+    @Override
+    public int getIssueType()
+    {
+        return 0;
+    }
+
+    @Override
+    public String getSeverity()
+    {
+        return severity;
+    }
+
+    @Override
+    public String getConfidence()
+    {
+        return "Certain";
+    }
+
+    @Override
+    public String getIssueBackground()
+    {
+        return null;
+    }
+
+    @Override
+    public String getRemediationBackground()
+    {
+        return null;
+    }
+
+    @Override
+    public String getIssueDetail()
+    {
+        return detail;
+    }
+
+    @Override
+    public String getRemediationDetail()
+    {
+        return null;
+    }
+
+    @Override
+    public IHttpRequestResponse[] getHttpMessages()
+    {
+        return httpMessages;
+    }
+
+    @Override
+    public IHttpService getHttpService()
+    {
+        return httpService;
+    }   
 }
