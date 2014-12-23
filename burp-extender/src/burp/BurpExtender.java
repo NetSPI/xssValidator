@@ -133,70 +133,13 @@ IIntruderPayloadGeneratorFactory, IIntruderPayloadProcessor, IScannerCheck {
 
         if ((toolFlag != 32) || (!messageIsRequest)) {
             if ((toolFlag == 32) && (!messageIsRequest)) {
-                HttpPost PhantomJs = new HttpPost(this.phantomURL.getText());
-                HttpPost SlimerJS = new HttpPost(this.slimerURL.getText());
-                try {
-                    byte[] encodedBytes = Base64.encodeBase64(messageInfo
-                            .getResponse());
-                    String encodedResponse = this.helpers
-                            .bytesToString(encodedBytes);
+            boolean vulnerable;
 
-                    List nameValuePairs = new ArrayList(1);
-                    nameValuePairs.add(new BasicNameValuePair("http-response",
-                            encodedResponse));
+            vulnerable = sendToDetector(this.phantomURL.getText(), messageInfo);
 
-                    PhantomJs
-                    .setEntity(new UrlEncodedFormEntity(nameValuePairs));
-
-                    HttpResponse response = this.client.execute(PhantomJs);
-                    String responseAsString = EntityUtils.toString(response
-                            .getEntity());
-
-                    this.stdout.println("Response: " + responseAsString);
-
-                    if (responseAsString.toLowerCase().contains(
-                            BurpExtender.triggerPhrase.toLowerCase())) {
-                        String newResponse = this.helpers
-                                .bytesToString(messageInfo.getResponse())
-                                + this.grepVal.getText();
-                        messageInfo.setResponse(this.helpers
-                                .stringToBytes(newResponse));
-                        this.stdout.println("XSS Found");
-                    }
-                }catch (Exception e) {
-                    this.stderr.println(e.getMessage());
-                }
-
-                try {
-                    byte[] encodedBytes = Base64.encodeBase64(messageInfo
-                            .getResponse());
-                    String encodedResponse = this.helpers
-                            .bytesToString(encodedBytes);
-
-                    List nameValuePairs = new ArrayList(1);
-                    nameValuePairs.add(new BasicNameValuePair("http-response",
-                            encodedResponse));
-
-                    SlimerJS.setEntity(new UrlEncodedFormEntity(nameValuePairs));
-
-                    HttpResponse response = this.client.execute(SlimerJS);
-                    String responseAsString = EntityUtils.toString(response
-                            .getEntity());
-
-                    this.stdout.println("Response: " + responseAsString);
-
-                    if (responseAsString.toLowerCase().contains(
-                            BurpExtender.triggerPhrase.toLowerCase())) {
-                        String newResponse = this.helpers
-                                .bytesToString(messageInfo.getResponse())
-                                + this.grepVal.getText();
-                        messageInfo.setResponse(this.helpers
-                                .stringToBytes(newResponse));
-                        this.stdout.println("XSS Found");
-                    }
-                }catch (Exception e) {
-                    this.stderr.println(e.getMessage());
-                }
+            // If Phantom.js doesn't process the payload, try slimer
+            if(!vulnerable)
+                vulnerable = sendToDetector(this.slimerURL.getText(), messageInfo);
             }
         }
     }
@@ -221,6 +164,46 @@ IIntruderPayloadGeneratorFactory, IIntruderPayloadProcessor, IScannerCheck {
 
     }
 
+    public boolean sendToDetector(String detectorUrl, IHttpRequestResponse messageInfo) {
+        HttpPost detector = new HttpPost(detectorUrl);
+        Boolean vulnerable = false;
+
+         try {
+                byte[] encodedBytes = Base64.encodeBase64(messageInfo
+                        .getResponse());
+                String encodedResponse = this.helpers
+                        .bytesToString(encodedBytes);
+
+                List nameValuePairs = new ArrayList(1);
+                nameValuePairs.add(new BasicNameValuePair("http-response",
+                        encodedResponse));
+
+                detector
+                .setEntity(new UrlEncodedFormEntity(nameValuePairs));
+
+                HttpResponse response = this.client.execute(detector);
+                String responseAsString = EntityUtils.toString(response
+                        .getEntity());
+
+                this.stdout.println("Response: " + responseAsString);
+
+                if (responseAsString.toLowerCase().contains(
+                        BurpExtender.triggerPhrase.toLowerCase())) {
+                    String newResponse = this.helpers
+                            .bytesToString(messageInfo.getResponse())
+                            + this.grepVal.getText();
+                    messageInfo.setResponse(this.helpers
+                            .stringToBytes(newResponse));
+                    this.stdout.println("XSS Found");
+                    vulnerable = true;
+
+                }
+            }catch (Exception e) {
+                this.stderr.println(e.getMessage());
+            }
+        return vulnerable;
+    }
+
     @Override
     public List<IScanIssue> doActiveScan(IHttpRequestResponse baseRequestResponse, IScannerInsertionPoint insertionPoint) {
         IntruderPayloadGenerator payloadGenerator = new IntruderPayloadGenerator(this);
@@ -232,78 +215,14 @@ IIntruderPayloadGeneratorFactory, IIntruderPayloadProcessor, IScannerCheck {
             IHttpRequestResponse messageInfo = mCallbacks.makeHttpRequest(
                 baseRequestResponse.getHttpService(), checkRequest);
 
-            // Too much code duplication, but for now it's ok
-            HttpPost PhantomJs = new HttpPost(this.phantomURL.getText());
-            HttpPost SlimerJS = new HttpPost(this.slimerURL.getText());
+            boolean vulnerable;
 
-            Boolean vulnerable = false;
+            vulnerable = sendToDetector(this.phantomURL.getText(), messageInfo);
 
-            try {
-                byte[] encodedBytes = Base64.encodeBase64(messageInfo
-                        .getResponse());
-                String encodedResponse = this.helpers
-                        .bytesToString(encodedBytes);
-
-                List nameValuePairs = new ArrayList(1);
-                nameValuePairs.add(new BasicNameValuePair("http-response",
-                        encodedResponse));
-
-                PhantomJs
-                .setEntity(new UrlEncodedFormEntity(nameValuePairs));
-
-                HttpResponse response = this.client.execute(PhantomJs);
-                String responseAsString = EntityUtils.toString(response
-                        .getEntity());
-
-                this.stdout.println("Response: " + responseAsString);
-
-                if (responseAsString.toLowerCase().contains(
-                        BurpExtender.triggerPhrase.toLowerCase())) {
-                    String newResponse = this.helpers
-                            .bytesToString(messageInfo.getResponse())
-                            + this.grepVal.getText();
-                    messageInfo.setResponse(this.helpers
-                            .stringToBytes(newResponse));
-                    this.stdout.println("XSS Found");
-                    vulnerable = true;
-
-                }
-            }catch (Exception e) {
-                this.stderr.println(e.getMessage());
-            }
-
-            try {
-                byte[] encodedBytes = Base64.encodeBase64(messageInfo
-                        .getResponse());
-                String encodedResponse = this.helpers
-                        .bytesToString(encodedBytes);
-
-                List nameValuePairs = new ArrayList(1);
-                nameValuePairs.add(new BasicNameValuePair("http-response",
-                        encodedResponse));
-
-                SlimerJS.setEntity(new UrlEncodedFormEntity(nameValuePairs));
-
-                HttpResponse response = this.client.execute(SlimerJS);
-                String responseAsString = EntityUtils.toString(response
-                        .getEntity());
-
-                this.stdout.println("Response: " + responseAsString);
-
-                if (responseAsString.toLowerCase().contains(
-                        BurpExtender.triggerPhrase.toLowerCase())) {
-                    String newResponse = this.helpers
-                            .bytesToString(messageInfo.getResponse())
-                            + this.grepVal.getText();
-                    messageInfo.setResponse(this.helpers
-                            .stringToBytes(newResponse));
-                    this.stdout.println("XSS Found");
-                    vulnerable = true;
-                }
-            }catch (Exception e) {
-                this.stderr.println(e.getMessage());
-            }
-
+            // If Phantom.js doesn't process the payload, try slimer
+            if(!vulnerable)
+                vulnerable = sendToDetector(this.slimerURL.getText(), messageInfo);
+           
             // Update this to actually detect matches
             List<int[]> matches = new ArrayList<int[]>();
             byte[] response = baseRequestResponse.getResponse();
