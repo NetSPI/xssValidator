@@ -185,8 +185,6 @@ IIntruderPayloadGeneratorFactory, IIntruderPayloadProcessor, IScannerCheck {
                 String responseAsString = EntityUtils.toString(response
                         .getEntity());
 
-                this.stdout.println("Response: " + responseAsString);
-
                 if (responseAsString.toLowerCase().contains(
                         BurpExtender.triggerPhrase.toLowerCase())) {
                     String newResponse = this.helpers
@@ -202,6 +200,25 @@ IIntruderPayloadGeneratorFactory, IIntruderPayloadProcessor, IScannerCheck {
                 this.stderr.println(e.getMessage());
             }
         return vulnerable;
+    }
+
+    // helper method to search a response for occurrences of a literal match string
+    // and return a list of start/end offsets
+    private List<int[]> getMatches(byte[] response, byte[] match)
+    {
+        List<int[]> matches = new ArrayList<int[]>();
+
+        int start = 0;
+        while (start < response.length)
+        {
+            start = helpers.indexOf(response, match, true, start, response.length);
+            if (start == -1)
+                break;
+            matches.add(new int[] { start, start + match.length });
+            start += match.length;
+        }
+        
+        return matches;
     }
 
     @Override
@@ -224,9 +241,7 @@ IIntruderPayloadGeneratorFactory, IIntruderPayloadProcessor, IScannerCheck {
                 vulnerable = sendToDetector(this.slimerURL.getText(), messageInfo);
            
             // Update this to actually detect matches
-            List<int[]> matches = new ArrayList<int[]>();
-            byte[] response = baseRequestResponse.getResponse();
-            matches.add(new int[] { 0, 1 });
+            List<int[]> matches = getMatches(messageInfo.getResponse(), triggerPhrase.getBytes());
 
             if(vulnerable) {
                 String payloadStr = new String(payload);
