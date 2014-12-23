@@ -1,5 +1,7 @@
 package burp;
 
+import java.util.regex.*;
+
 import java.awt.BorderLayout;
 import java.awt.GridLayout;
 import java.awt.Font;
@@ -128,19 +130,64 @@ IIntruderPayloadGeneratorFactory, IIntruderPayloadProcessor, IScannerCheck {
         return this.mainPanel;
     }
 
+    /**
+    * Parse URL and cookie values from intruderRequest
+    * return for use in xss-detectors
+    */
+    public String[] fetchRequestVals(byte[] intruderRequest, String proto) {
+        String request = this.helpers.bytesToString(intruderRequest);
+
+        String urlPattern = "(GET|POST) (.*) H";
+        String hostPattern = "Host: (.*)";
+        String cookiePattern = "[C|c]ookie: (.*)";
+        Pattern url = Pattern.compile(urlPattern);
+        Pattern host = Pattern.compile(hostPattern);
+        Pattern cookie = Pattern.compile(cookiePattern);
+        Matcher urlMatcher = url.matcher(request);
+        Matcher hostMatcher = host.matcher(request);
+        Matcher cookieMatcher = cookie.matcher(request);
+
+        String intruderUrl = "";
+        String intruderHost = "";
+        String cookies = "";
+
+        // Find specific values
+        while (urlMatcher.find()) {
+            intruderUrl = urlMatcher.group(2); 
+        }
+
+        while(hostMatcher.find()) {
+            intruderHost = hostMatcher.group(1);
+        }
+
+        while(cookieMatcher.find()) {
+            cookies = cookieMatcher.group(1);
+        }
+        intruderUrl = proto + "://" + intruderHost + intruderUrl;
+
+        String[] requestVals = new String[2];
+        requestVals[0] = intruderUrl;
+        requestVals[1] = cookies;
+        return requestVals;
+    }
+
     public void processHttpMessage(int toolFlag, boolean messageIsRequest,
             IHttpRequestResponse messageInfo) {
 
         if ((toolFlag != 32) || (!messageIsRequest)) {
             if ((toolFlag == 32) && (!messageIsRequest)) {
-            boolean vulnerable;
+                boolean vulnerable;
 
-            vulnerable = sendToDetector(this.phantomURL.getText(), messageInfo);
+                // Grab request information from messageInfo.getRequest()
+                String[] requestInfo = fetchRequestVals(messageInfo.getRequest(), messageInfo.getHttpService().getProtocol());
 
-            // If Phantom.js doesn't process the payload, try slimer
-            if(!vulnerable)
-                vulnerable = sendToDetector(this.slimerURL.getText(), messageInfo);
-            }
+
+                vulnerable = sendToDetector(this.phantomURL.getText(), messageInfo, requestInfo);
+
+                // If Phantom.js doesn't process the payload, try slimer
+                if(!vulnerable)
+                    vulnerable = sendToDetector(this.slimerURL.getText(), messageInfo, requestInfo);
+                }
         }
     }
 
@@ -164,19 +211,34 @@ IIntruderPayloadGeneratorFactory, IIntruderPayloadProcessor, IScannerCheck {
 
     }
 
-    public boolean sendToDetector(String detectorUrl, IHttpRequestResponse messageInfo) {
+    public boolean sendToDetector(String detectorUrl, IHttpRequestResponse messageInfo, String[] requestInfo) {
         HttpPost detector = new HttpPost(detectorUrl);
         Boolean vulnerable = false;
+        String intruderURL = requestInfo[0];
+        String cookies = requestInfo[1];
 
-         try {
+            try {
+                // Encode page Response
                 byte[] encodedBytes = Base64.encodeBase64(messageInfo
                         .getResponse());
                 String encodedResponse = this.helpers
                         .bytesToString(encodedBytes);
 
-                List nameValuePairs = new ArrayList(1);
+                // Encode URL
+                byte[] encodedURLBytes = Base64.encodeBase64(intruderURL.getBytes());
+                String encodedURL = this.helpers.bytesToString(encodedURLBytes);
+
+                // Encode Cookies
+                byte[] encodedCookiesBytes = Base64.encodeBase64(cookies.getBytes());
+                String encodedCookies = this.helpers.bytesToString(encodedCookiesBytes);
+
+                List nameValuePairs = new ArrayList(3);
                 nameValuePairs.add(new BasicNameValuePair("http-response",
                         encodedResponse));
+                nameValuePairs.add(new BasicNameValuePair("http-url",
+                    encodedURL));
+                nameValuePairs.add(new BasicNameValuePair("http-cookies",
+                    encodedCookies));
 
                 detector
                 .setEntity(new UrlEncodedFormEntity(nameValuePairs));
@@ -184,6 +246,8 @@ IIntruderPayloadGeneratorFactory, IIntruderPayloadProcessor, IScannerCheck {
                 HttpResponse response = this.client.execute(detector);
                 String responseAsString = EntityUtils.toString(response
                         .getEntity());
+
+                this.stdout.println("Response: " + responseAsString);
 
                 if (responseAsString.toLowerCase().contains(
                         BurpExtender.triggerPhrase.toLowerCase())) {
@@ -194,7 +258,6 @@ IIntruderPayloadGeneratorFactory, IIntruderPayloadProcessor, IScannerCheck {
                             .stringToBytes(newResponse));
                     this.stdout.println("XSS Found");
                     vulnerable = true;
-
                 }
             }catch (Exception e) {
                 this.stderr.println(e.getMessage());
@@ -233,12 +296,13 @@ IIntruderPayloadGeneratorFactory, IIntruderPayloadProcessor, IScannerCheck {
                 baseRequestResponse.getHttpService(), checkRequest);
 
             boolean vulnerable;
+            String[] requestInfo = fetchRequestVals(messageInfo.getRequest(), messageInfo.getHttpService().getProtocol());
 
-            vulnerable = sendToDetector(this.phantomURL.getText(), messageInfo);
+            vulnerable = sendToDetector(this.phantomURL.getText(), messageInfo, requestInfo);
 
             // If Phantom.js doesn't process the payload, try slimer
             if(!vulnerable)
-                vulnerable = sendToDetector(this.slimerURL.getText(), messageInfo);
+                vulnerable = sendToDetector(this.slimerURL.getText(), messageInfo, requestInfo);
            
             // Update this to actually detect matches
             List<int[]> matches = getMatches(messageInfo.getResponse(), triggerPhrase.getBytes());
@@ -382,7 +446,7 @@ IIntruderPayloadGeneratorFactory, IIntruderPayloadProcessor, IScannerCheck {
                  */
                 String payloads = "";
                 for (byte[] bs:BurpExtender.PAYLOADS) {
-                    payloads += new String(bs) + "\r\n";
+                    payloads += new String(bs) + "\n";
                 }
 
                 BurpExtender.this.attackStringsTextarea = new JTextArea(30, 50);

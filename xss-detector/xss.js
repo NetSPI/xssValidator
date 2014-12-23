@@ -34,30 +34,49 @@ var host = '127.0.0.1';
 var port = '8093';
 
 /**
+ * Split cookies by semicolon and add each cookie to the webpage
+ * object separately.
+ */
+parseCookies = function(cookies, wp) {
+	cookieArray = cookies.split(";");
+	for (var i = 0; i < cookieArray.length; i++) {
+		cookieArgs = cookieArray[i].split("=");
+    	wp.addCookie({
+    		'name': cookieArgs[0],
+    		'value': cookieArgs[1]
+    	});
+	}
+	return wp;
+}
+
+/**
  * parse incoming HTTP responses that are provided via BURP intruder.
  * data is base64 encoded to prevent issues passing via HTTP.
  *
  * Webkit will parse all responses and alert us of any seemingly
  * malicious Javascript execution, such as alert, confirm, etc.
  */
-parsePage = function(data) {
+parsePage = function(data,url,cookies) {
 	if (DEBUG) {	
 		console.log("Beginning to parse page");
+		console.log("\tURL: " + url);
+		console.log("\tCookies: " + cookies);
 	}
 
 	var html_response = "";
-	data = data.split(/\r\n\r\n/);
-	wp.content = data[1];
-	wp.onAlert = function(msg) {
-		console.log("On alert: " + msg);
-	};
+
+	wp.setContent(data, decodeURIComponent(url));
+
+	// Parse cookies from intruder and add to request
+	wp = parseCookies(cookies,wp);
 
 	// Evaluate page, rendering javascript
-
-	xssInfo = wp.evaluate(function (wp) {
+	xssInfo = wp.evaluate(function (wp) {				
                 var tags = ["a", "abbr", "acronym", "address", "applet", "area", "article", "aside", "audio", "audioscope", "b", "base", "basefont", "bdi", "bdo", "bgsound", "big", "blackface", "blink", "blockquote", "body", "bq", "br", "button", "canvas", "caption", "center", "cite", "code", "col", "colgroup", "command", "comment", "datalist", "dd", "del", "details", "dfn", "dir", "div", "dl", "dt", "em", "embed", "fieldset", "figcaption", "figure", "fn", "font", "footer", "form", "frame", "frameset", "h1", "h2", "h3", "h4", "h5", "h6", "head", "header", "hgroup", "hr", "html", "i", "iframe", "ilayer", "img", "input", "ins", "isindex", "kbd", "keygen", "label", "layer", "legend", "li", "limittext", "link", "listing", "map", "mark", "marquee", "menu", "meta", "meter", "multicol", "nav", "nobr", "noembed", "noframes", "noscript", "nosmartquotes", "object", "ol", "optgroup", "option", "output", "p", "param", "plaintext", "pre", "progress", "q", "rp", "rt", "ruby", "s", "samp", "script", "section", "select", "server", "shadow", "sidebar", "small", "source", "spacer", "span", "strike", "strong", "style", "sub", "sup", "table", "tbody", "td", "textarea", "tfoot", "th", "thead", "time", "title", "tr", "tt", "u", "ul", "var", "video", "wbr", "xml", "xmp"];
                 var eventHandler = ["mousemove","mouseout","mouseover"]
 
+                // Search document for interactive HTML elements, and hover over each
+                // In attempt to trigger event handlers.
                 tags.forEach(function(tag) {
                         currentTags = document.querySelector(tag);
                         if (currentTags !== null){
@@ -69,6 +88,7 @@ parsePage = function(data) {
                         }
                 });
 		// Return information from page, if necessary
+		return document;
 	}, wp);
 	wp.close();
 
@@ -146,15 +166,21 @@ var service = server.listen(host + ":" + port, function(request, response) {
 	// At this point in time we're only concerned with POST requests
 	// As such, only process those.
 	if(request.method == "POST") {
+		// Grab pageResponse from POST Data and base64 decode.
+		// pass result to parsePage function to search for XSS.
+		var pageResponse = request.post['http-response'];
+		var pageUrl = request.post['http-url'];
+		var pageCookies = request.post['http-cookies'];
+
+		pageResponse = atob(pageResponse);
+		pageUrl = atob(pageUrl);
+		cookies = atob(pageCookies);
+
 		if(DEBUG) {
 			console.log("Processing Post Request");
 		}
 
-		// Grab pageResponse from POST Data and base64 decode.
-		// pass result to parsePage function to search for XSS.
-		var pageResponse = request.post['http-response'];
-		pageResponse = atob(pageResponse);
-		xssResults = parsePage(pageResponse);
+		xssResults = parsePage(pageResponse,pageUrl,cookies);
 
 		// Return XSS Results
 		if(xssResults) {
