@@ -15,7 +15,7 @@
  * alert, confirm, etc. The page will be evaluated, and the DOM
  * triggers will alert us of any suspicious JS.
 */
-var DEBUG = false
+var DEBUG = true
 
 var system = require('system');
 var fs = require('fs');
@@ -37,10 +37,8 @@ var port = '8093';
  * parse incoming HTTP responses that are provided via BURP intruder.
  * data is base64 encoded to prevent issues passing via HTTP.
  *
- * This function appends the js-overrides.js file to all responses
- * to inject xss triggers into every page. Webkit will parse all responses
- * and alert us of any seemingly malicious Javascript execution, such as
- * alert, confirm, fromCharCode, etc.
+ * Webkit will parse all responses and alert us of any seemingly
+ * malicious Javascript execution, such as alert, confirm, etc.
  */
 parsePage = function(data) {
 	if (DEBUG) {	
@@ -48,7 +46,11 @@ parsePage = function(data) {
 	}
 
 	var html_response = "";
-	wp.content = data;
+	data = data.split(/\r\n\r\n/);
+	wp.content = data[1];
+	wp.onAlert = function(msg) {
+		console.log("On alert: " + msg);
+	};
 
 	// Evaluate page, rendering javascript
 
@@ -68,9 +70,10 @@ parsePage = function(data) {
                 });
 		// Return information from page, if necessary
 	}, wp);
+	wp.close();
 
 	if(xss) {
-		// xss detected, return
+		// Suspicious function executed, return to Burp for evaluation
 		return xss;
 	}
 	return false;
@@ -83,7 +86,7 @@ parsePage = function(data) {
  * and as such, trigger false-positive messages.
  */
 reInitializeWebPage = function() {
-	wp = new WebPage();
+	wp = require("webpage").create();
 	xss = new Object();
 	xss.value = 0;
 	xss.msg = "";
@@ -166,7 +169,7 @@ var service = server.listen(host + ":" + port, function(request, response) {
 		}
 	} else {
 		response.statusCode = 500;
-		response.write("Server is only designed to handle GET requests");
+		response.write("Server is only designed to handle POST requests");
 		response.close();
 	}
 
