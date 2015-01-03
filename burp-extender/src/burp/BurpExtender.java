@@ -48,6 +48,7 @@ IIntruderPayloadGeneratorFactory, IIntruderPayloadProcessor, IScannerCheck {
 
     public static String         triggerPhrase            = "299792458";
     public static String         grepPhrase               = "fy7sdufsuidfhuisdf";
+	public static String		  errorGrepPhrase		  = "uerhgrgwgwiuhuiogj";
     public JLabel                 htmlDescription;
     public JPanel                 mainPanel;
     public JPanel                 leftPanel;
@@ -57,6 +58,7 @@ IIntruderPayloadGeneratorFactory, IIntruderPayloadProcessor, IScannerCheck {
     public JTextField             phantomURL;
     public JTextField             slimerURL;
     public JTextField             grepVal;
+	public JTextField			  errorGrepVal;
     public JTabbedPane            tabbedPane;
     public JButton                btnAddText;
     public JButton                btnSaveTabAsTemplate;
@@ -259,6 +261,17 @@ IIntruderPayloadGeneratorFactory, IIntruderPayloadProcessor, IScannerCheck {
                     this.stdout.println("XSS Found");
                     vulnerable = true;
                 }
+				String jsParseErrorIndicator="Probable XSS found: execution-error";
+				if (responseAsString.toLowerCase().contains(
+                    jsParseErrorIndicator.toLowerCase())) {
+                    String newResponse = this.helpers
+                            .bytesToString(messageInfo.getResponse())
+                             + this.errorGrepVal.getText();
+                    messageInfo.setResponse(this.helpers
+                            .stringToBytes(newResponse));
+                   this.stdout.println("Error based XSS Found");
+				   // vulnerable  = true;
+                }				
             }catch (Exception e) {
                 this.stderr.println(e.getMessage());
             }
@@ -404,7 +417,7 @@ IIntruderPayloadGeneratorFactory, IIntruderPayloadProcessor, IScannerCheck {
                 /*
                  Server Config
                  */
-                BurpExtender.this.serverConfig = new JPanel(new GridLayout(5,2));
+                BurpExtender.this.serverConfig = new JPanel(new GridLayout(6,2));
 
                 BurpExtender.this.phantomURL = new JTextField(20);
                 BurpExtender.this.phantomURL
@@ -416,9 +429,13 @@ IIntruderPayloadGeneratorFactory, IIntruderPayloadProcessor, IScannerCheck {
                 BurpExtender.this.grepVal = new JTextField(20);
                 BurpExtender.this.grepVal.setText(BurpExtender.grepPhrase);
 
+                BurpExtender.this.errorGrepVal = new JTextField(20);
+                BurpExtender.this.errorGrepVal.setText(BurpExtender.errorGrepPhrase);				
+				
                 JLabel phantomHeading = new JLabel("PhantomJS Server Settings");
                 JLabel slimerHeading = new JLabel("Slimer Server Settings");
                 JLabel grepHeading = new JLabel("Grep Phrase");
+				JLabel errorGrepHeading = new JLabel("Grep Phrase for JS crash");
 
                 BurpExtender.this.serverConfig.add(phantomHeading);
                 BurpExtender.this.serverConfig
@@ -430,6 +447,9 @@ IIntruderPayloadGeneratorFactory, IIntruderPayloadProcessor, IScannerCheck {
                 BurpExtender.this.serverConfig.add(grepHeading);
                 BurpExtender.this.serverConfig.add(BurpExtender.this.grepVal);
 
+				BurpExtender.this.serverConfig.add(errorGrepHeading);
+                BurpExtender.this.serverConfig.add(BurpExtender.this.errorGrepVal);				
+				
                 JLabel functionsLabel = new JLabel("Javascript functions");
                 BurpExtender.this.serverConfig.add(functionsLabel);
                 BurpExtender.this.serverConfig
