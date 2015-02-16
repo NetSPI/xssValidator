@@ -52,24 +52,18 @@ parseCookies = function(cookies, wp) {
 /**
  * parse incoming HTTP responses that are provided via BURP intruder.
  * data is base64 encoded to prevent issues passing via HTTP.
- *
- * Webkit will parse all responses and alert us of any seemingly
- * malicious Javascript execution, such as alert, confirm, etc.
  */
 parsePage = function(data,url,cookies) {
 	if (DEBUG) {	
 		console.log("Beginning to parse page");
-		console.log("\tURL: " + url);
-		console.log("\tCookies: " + cookies);
+		console.log("URL: " + url);
+		console.log("Cookies: " + cookies);
+		//console.log(data);
 	}
-
-	var html_response = "";
-
 	wp.setContent(data, decodeURIComponent(url));
-
+	
 	// Parse cookies from intruder and add to request
 	wp = parseCookies(cookies,wp);
-
 	// Evaluate page, rendering javascript
 	xssInfo = wp.evaluate(function (wp) {				
                 var tags = ["a", "abbr", "acronym", "address", "applet", "area", "article", "aside", "audio", "audioscope", "b", "base", "basefont", "bdi", "bdo", "bgsound", "big", "blackface", "blink", "blockquote", "body", "bq", "br", "button", "canvas", "caption", "center", "cite", "code", "col", "colgroup", "command", "comment", "datalist", "dd", "del", "details", "dfn", "dir", "div", "dl", "dt", "em", "embed", "fieldset", "figcaption", "figure", "fn", "font", "footer", "form", "frame", "frameset", "h1", "h2", "h3", "h4", "h5", "h6", "head", "header", "hgroup", "hr", "html", "i", "iframe", "ilayer", "img", "input", "ins", "isindex", "kbd", "keygen", "label", "layer", "legend", "li", "limittext", "link", "listing", "map", "mark", "marquee", "menu", "meta", "meter", "multicol", "nav", "nobr", "noembed", "noframes", "noscript", "nosmartquotes", "object", "ol", "optgroup", "option", "output", "p", "param", "plaintext", "pre", "progress", "q", "rp", "rt", "ruby", "s", "samp", "script", "section", "select", "server", "shadow", "sidebar", "small", "source", "spacer", "span", "strike", "strong", "style", "sub", "sup", "table", "tbody", "td", "textarea", "tfoot", "th", "thead", "time", "title", "tr", "tt", "u", "ul", "var", "video", "wbr", "xml", "xmp"];
@@ -90,10 +84,8 @@ parsePage = function(data,url,cookies) {
 		// Return information from page, if necessary
 		return document;
 	}, wp);
-	wp.close();
-
 	if(xss) {
-		// Suspicious function executed, return to Burp for evaluation
+		// xss detected, return
 		return xss;
 	}
 	return false;
@@ -127,14 +119,12 @@ reInitializeWebPage = function() {
 		xss.value = 1;
 		xss.msg += 'XSS found: alert(' + msg + ')';
 	};
-
 	wp.onConsoleMessage = function(msg) {
 		console.log("On console.log: " + msg);
 		
 		xss.value = 1;
 		xss.msg += 'XSS found: console.log(' + msg + ')';
 	};
-
 	wp.onConfirm = function(msg) {
 		console.log("On confirm: " + msg);
 		
@@ -148,7 +138,12 @@ reInitializeWebPage = function() {
 		xss.value = 1;
 		xss.msg += 'XSS found: prompt(' + msg + ')';
 	};
-        
+	
+	wp.onError = function(msg) {
+		console.log("Parse error: "+msg);
+		xss.value = 2;
+		xss.msg +='Probable XSS found: execution-error: '+msg;
+	};
 	return wp;
 };
 
