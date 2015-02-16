@@ -139,17 +139,14 @@ IIntruderPayloadGeneratorFactory, IIntruderPayloadProcessor, IScannerCheck {
 
         String urlPattern = "(GET|POST) (.*) H";
         String hostPattern = "Host: (.*)";
-        String cookiePattern = "[C|c]ookie: (.*)";
         Pattern url = Pattern.compile(urlPattern);
         Pattern host = Pattern.compile(hostPattern);
-        Pattern cookie = Pattern.compile(cookiePattern);
         Matcher urlMatcher = url.matcher(request);
         Matcher hostMatcher = host.matcher(request);
-        Matcher cookieMatcher = cookie.matcher(request);
+
 
         String intruderUrl = "";
         String intruderHost = "";
-        String cookies = "";
 
         // Find specific values
         while (urlMatcher.find()) {
@@ -160,14 +157,11 @@ IIntruderPayloadGeneratorFactory, IIntruderPayloadProcessor, IScannerCheck {
             intruderHost = hostMatcher.group(1);
         }
 
-        while(cookieMatcher.find()) {
-            cookies = cookieMatcher.group(1);
-        }
         intruderUrl = proto + "://" + intruderHost + intruderUrl;
 
         String[] requestVals = new String[2];
         requestVals[0] = intruderUrl;
-        requestVals[1] = cookies;
+        requestVals[1] = request;
         return requestVals;
     }
 
@@ -215,7 +209,7 @@ IIntruderPayloadGeneratorFactory, IIntruderPayloadProcessor, IScannerCheck {
         HttpPost detector = new HttpPost(detectorUrl);
         Boolean vulnerable = false;
         String intruderURL = requestInfo[0];
-        String cookies = requestInfo[1];
+        String headers = requestInfo[1];
 
             try {
                 // Encode page Response
@@ -228,17 +222,17 @@ IIntruderPayloadGeneratorFactory, IIntruderPayloadProcessor, IScannerCheck {
                 byte[] encodedURLBytes = Base64.encodeBase64(intruderURL.getBytes());
                 String encodedURL = this.helpers.bytesToString(encodedURLBytes);
 
-                // Encode Cookies
-                byte[] encodedCookiesBytes = Base64.encodeBase64(cookies.getBytes());
-                String encodedCookies = this.helpers.bytesToString(encodedCookiesBytes);
+                // Encode Headers
+                byte[] encodedHeaderBytes = Base64.encodeBase64(headers.getBytes());
+                String encodedHeaders = this.helpers.bytesToString(encodedHeaderBytes);
 
                 List nameValuePairs = new ArrayList(3);
                 nameValuePairs.add(new BasicNameValuePair("http-response",
                         encodedResponse));
                 nameValuePairs.add(new BasicNameValuePair("http-url",
                     encodedURL));
-                nameValuePairs.add(new BasicNameValuePair("http-cookies",
-                    encodedCookies));
+                nameValuePairs.add(new BasicNameValuePair("http-headers",
+                    encodedHeaders));
 
                 detector
                 .setEntity(new UrlEncodedFormEntity(nameValuePairs));

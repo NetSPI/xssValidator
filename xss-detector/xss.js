@@ -34,41 +34,42 @@ var host = '127.0.0.1';
 var port = '8093';
 
 /**
- * Split cookies by semicolon and add each cookie to the webpage
- * object separately.
- */
-parseCookies = function(cookies, wp) {
-	cookieArray = cookies.split(";");
-	for (var i = 0; i < cookieArray.length; i++) {
-		cookieArgs = cookieArray[i].split("=");
-    	wp.addCookie({
-    		'name': cookieArgs[0],
-    		'value': cookieArgs[1]
-    	});
-	}
-	return wp;
-}
-
-/**
  * parse incoming HTTP responses that are provided via BURP intruder.
  * data is base64 encoded to prevent issues passing via HTTP.
  *
  * Webkit will parse all responses and alert us of any seemingly
  * malicious Javascript execution, such as alert, confirm, etc.
  */
-parsePage = function(data,url,cookies) {
+parsePage = function(data,url,headers) {
 	if (DEBUG) {	
 		console.log("Beginning to parse page");
 		console.log("\tURL: " + url);
-		console.log("\tCookies: " + cookies);
+		console.log("\tHeaders: " + headers);
 	}
 
 	var html_response = "";
 
 	wp.setContent(data, decodeURIComponent(url));
 
-	// Parse cookies from intruder and add to request
-	wp = parseCookies(cookies,wp);
+	var headerArray = { };
+
+	// Parse headers and add to customHeaders hash
+	var headerLines = headers.split("\n");
+
+	// Remove several unnecessary lines including Request, and double line breaks
+	headerLines.splice(0,1);
+	headerLines.pop();
+	headerLines.pop();
+
+	for (var i = 0; i < headerLines.length; i++) {
+		// Split by colon now
+		var lineItems = headerLines[i].split(": ");
+
+		headerArray[lineItems[0]] = lineItems[1].trim();
+	}
+
+	wp.customHeaders = headerArray;
+	console.log("Inspect: " + JSON.stringify(headerArray));
 
 	// Evaluate page, rendering javascript
 	xssInfo = wp.evaluate(function (wp) {				
@@ -170,17 +171,20 @@ var service = server.listen(host + ":" + port, function(request, response) {
 		// pass result to parsePage function to search for XSS.
 		var pageResponse = request.post['http-response'];
 		var pageUrl = request.post['http-url'];
-		var pageCookies = request.post['http-cookies'];
+		var responseHeaders = request.post['http-headers'];
 
 		pageResponse = atob(pageResponse);
 		pageUrl = atob(pageUrl);
-		cookies = atob(pageCookies);
+		responseHeaders = atob(responseHeaders);
+
+		//headers = JSON.parse(responseHeaders);
+		headers = responseHeaders;
 
 		if(DEBUG) {
 			console.log("Processing Post Request");
 		}
 
-		xssResults = parsePage(pageResponse,pageUrl,cookies);
+		xssResults = parsePage(pageResponse,pageUrl,headers);
 
 		// Return XSS Results
 		if(xssResults) {
