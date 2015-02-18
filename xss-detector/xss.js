@@ -58,8 +58,6 @@ parsePage = function(data,url,headers) {
 	headerLines.pop();
 	headerLines.pop();
 
-	headerObj = {};
-
 	for (var i = 0; i < headerLines.length; i++) {
 		// Split by colon now
 		var lineItems = headerLines[i].split(": ");
