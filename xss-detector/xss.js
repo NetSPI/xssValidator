@@ -48,9 +48,6 @@ parsePage = function(data,url,headers) {
 	}
 
 	var html_response = "";
-
-	wp.setContent(data, decodeURIComponent(url));
-
 	var headerArray = { };
 
 	// Parse headers and add to customHeaders hash
@@ -61,6 +58,8 @@ parsePage = function(data,url,headers) {
 	headerLines.pop();
 	headerLines.pop();
 
+	headerObj = {};
+
 	for (var i = 0; i < headerLines.length; i++) {
 		// Split by colon now
 		var lineItems = headerLines[i].split(": ");
@@ -69,7 +68,8 @@ parsePage = function(data,url,headers) {
 	}
 
 	wp.customHeaders = headerArray;
-	console.log("Inspect: " + JSON.stringify(headerArray));
+
+	wp.setContent(data, decodeURIComponent(url));
 
 	// Evaluate page, rendering javascript
 	xssInfo = wp.evaluate(function (wp) {				
@@ -118,7 +118,7 @@ reInitializeWebPage = function() {
 		localToRemoteUrlAccessEnabled: true,
 		javascriptEnabled: true,
 		webSecurityEnabled: false,
-		XSSAuditingEnabled: false
+		XSSAuditingEnabled: false,
 	};
 
 	// Custom handler for alert functionality
