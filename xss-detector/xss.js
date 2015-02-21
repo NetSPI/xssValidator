@@ -36,9 +36,6 @@ var port = '8093';
 /**
  * parse incoming HTTP responses that are provided via BURP intruder.
  * data is base64 encoded to prevent issues passing via HTTP.
- *
- * Webkit will parse all responses and alert us of any seemingly
- * malicious Javascript execution, such as alert, confirm, etc.
  */
 parsePage = function(data,url,headers) {
 	if (DEBUG) {	
@@ -89,10 +86,8 @@ parsePage = function(data,url,headers) {
 		// Return information from page, if necessary
 		return document;
 	}, wp);
-	wp.close();
-
 	if(xss) {
-		// Suspicious function executed, return to Burp for evaluation
+		// xss detected, return
 		return xss;
 	}
 	return false;
@@ -126,14 +121,12 @@ reInitializeWebPage = function() {
 		xss.value = 1;
 		xss.msg += 'XSS found: alert(' + msg + ')';
 	};
-
 	wp.onConsoleMessage = function(msg) {
 		console.log("On console.log: " + msg);
 		
 		xss.value = 1;
 		xss.msg += 'XSS found: console.log(' + msg + ')';
 	};
-
 	wp.onConfirm = function(msg) {
 		console.log("On confirm: " + msg);
 		
@@ -147,7 +140,12 @@ reInitializeWebPage = function() {
 		xss.value = 1;
 		xss.msg += 'XSS found: prompt(' + msg + ')';
 	};
-        
+	
+	wp.onError = function(msg) {
+		console.log("Parse error: "+msg);
+		xss.value = 2;
+		xss.msg +='Probable XSS found: execution-error: '+msg;
+	};
 	return wp;
 };
 
