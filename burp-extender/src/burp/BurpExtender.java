@@ -35,7 +35,7 @@ import burp.ITab;
 
 public class BurpExtender implements IBurpExtender, ITab, IHttpListener,
 IIntruderPayloadGeneratorFactory, IIntruderPayloadProcessor, IScannerCheck {
-    private static final String VERSION = "1.3.0";
+    private static final String VERSION = "1.3.2";
 
     public IBurpExtenderCallbacks mCallbacks;
     private IExtensionHelpers     helpers;
@@ -85,6 +85,7 @@ IIntruderPayloadGeneratorFactory, IIntruderPayloadProcessor, IScannerCheck {
             ("\";" + BurpExtender.JAVASCRIPT_PLACEHOLDER + ";\"").getBytes(),
             ("';" + BurpExtender.JAVASCRIPT_PLACEHOLDER + ";'").getBytes(),
             (";" + BurpExtender.JAVASCRIPT_PLACEHOLDER + ";").getBytes(),
+            (BurpExtender.JAVASCRIPT_PLACEHOLDER + ";").getBytes(),
             ("<SCR%00IPT>" + BurpExtender.JAVASCRIPT_PLACEHOLDER + "</SCR%00IPT>").getBytes(),
             ("\\\";" + BurpExtender.JAVASCRIPT_PLACEHOLDER + ";//").getBytes(),
             ("<STYLE TYPE=\"text/javascript\">"
