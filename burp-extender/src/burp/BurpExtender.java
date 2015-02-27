@@ -35,7 +35,7 @@ import burp.ITab;
 
 public class BurpExtender implements IBurpExtender, ITab, IHttpListener,
 IIntruderPayloadGeneratorFactory, IIntruderPayloadProcessor, IScannerCheck {
-    private static final String VERSION = "1.3.0";
+    private static final String VERSION = "1.3.2";
 
     public IBurpExtenderCallbacks mCallbacks;
     private IExtensionHelpers     helpers;
@@ -48,6 +48,7 @@ IIntruderPayloadGeneratorFactory, IIntruderPayloadProcessor, IScannerCheck {
 
     public static String         triggerPhrase            = "299792458";
     public static String         grepPhrase               = "fy7sdufsuidfhuisdf";
+	public static String		  errorGrepPhrase		  = "uerhgrgwgwiuhuiogj";
     public JLabel                 htmlDescription;
     public JPanel                 mainPanel;
     public JPanel                 leftPanel;
@@ -57,6 +58,7 @@ IIntruderPayloadGeneratorFactory, IIntruderPayloadProcessor, IScannerCheck {
     public JTextField             phantomURL;
     public JTextField             slimerURL;
     public JTextField             grepVal;
+	public JTextField			  errorGrepVal;
     public JTabbedPane            tabbedPane;
     public JButton                btnAddText;
     public JButton                btnSaveTabAsTemplate;
@@ -83,6 +85,7 @@ IIntruderPayloadGeneratorFactory, IIntruderPayloadProcessor, IScannerCheck {
             ("\";" + BurpExtender.JAVASCRIPT_PLACEHOLDER + ";\"").getBytes(),
             ("';" + BurpExtender.JAVASCRIPT_PLACEHOLDER + ";'").getBytes(),
             (";" + BurpExtender.JAVASCRIPT_PLACEHOLDER + ";").getBytes(),
+            (BurpExtender.JAVASCRIPT_PLACEHOLDER + ";").getBytes(),
             ("<SCR%00IPT>" + BurpExtender.JAVASCRIPT_PLACEHOLDER + "</SCR%00IPT>").getBytes(),
             ("\\\";" + BurpExtender.JAVASCRIPT_PLACEHOLDER + ";//").getBytes(),
             ("<STYLE TYPE=\"text/javascript\">"
@@ -139,17 +142,14 @@ IIntruderPayloadGeneratorFactory, IIntruderPayloadProcessor, IScannerCheck {
 
         String urlPattern = "(GET|POST) (.*) H";
         String hostPattern = "Host: (.*)";
-        String cookiePattern = "[C|c]ookie: (.*)";
         Pattern url = Pattern.compile(urlPattern);
         Pattern host = Pattern.compile(hostPattern);
-        Pattern cookie = Pattern.compile(cookiePattern);
         Matcher urlMatcher = url.matcher(request);
         Matcher hostMatcher = host.matcher(request);
-        Matcher cookieMatcher = cookie.matcher(request);
+
 
         String intruderUrl = "";
         String intruderHost = "";
-        String cookies = "";
 
         // Find specific values
         while (urlMatcher.find()) {
@@ -160,14 +160,11 @@ IIntruderPayloadGeneratorFactory, IIntruderPayloadProcessor, IScannerCheck {
             intruderHost = hostMatcher.group(1);
         }
 
-        while(cookieMatcher.find()) {
-            cookies = cookieMatcher.group(1);
-        }
         intruderUrl = proto + "://" + intruderHost + intruderUrl;
 
         String[] requestVals = new String[2];
         requestVals[0] = intruderUrl;
-        requestVals[1] = cookies;
+        requestVals[1] = request;
         return requestVals;
     }
 
@@ -215,7 +212,7 @@ IIntruderPayloadGeneratorFactory, IIntruderPayloadProcessor, IScannerCheck {
         HttpPost detector = new HttpPost(detectorUrl);
         Boolean vulnerable = false;
         String intruderURL = requestInfo[0];
-        String cookies = requestInfo[1];
+        String headers = requestInfo[1];
 
             try {
                 // Encode page Response
@@ -228,17 +225,17 @@ IIntruderPayloadGeneratorFactory, IIntruderPayloadProcessor, IScannerCheck {
                 byte[] encodedURLBytes = Base64.encodeBase64(intruderURL.getBytes());
                 String encodedURL = this.helpers.bytesToString(encodedURLBytes);
 
-                // Encode Cookies
-                byte[] encodedCookiesBytes = Base64.encodeBase64(cookies.getBytes());
-                String encodedCookies = this.helpers.bytesToString(encodedCookiesBytes);
+                // Encode Headers
+                byte[] encodedHeaderBytes = Base64.encodeBase64(headers.getBytes());
+                String encodedHeaders = this.helpers.bytesToString(encodedHeaderBytes);
 
                 List nameValuePairs = new ArrayList(3);
                 nameValuePairs.add(new BasicNameValuePair("http-response",
                         encodedResponse));
                 nameValuePairs.add(new BasicNameValuePair("http-url",
                     encodedURL));
-                nameValuePairs.add(new BasicNameValuePair("http-cookies",
-                    encodedCookies));
+                nameValuePairs.add(new BasicNameValuePair("http-headers",
+                    encodedHeaders));
 
                 detector
                 .setEntity(new UrlEncodedFormEntity(nameValuePairs));
@@ -259,6 +256,17 @@ IIntruderPayloadGeneratorFactory, IIntruderPayloadProcessor, IScannerCheck {
                     this.stdout.println("XSS Found");
                     vulnerable = true;
                 }
+				String jsParseErrorIndicator="Probable XSS found: execution-error";
+				if (responseAsString.toLowerCase().contains(
+                    jsParseErrorIndicator.toLowerCase())) {
+                    String newResponse = this.helpers
+                            .bytesToString(messageInfo.getResponse())
+                             + this.errorGrepVal.getText();
+                    messageInfo.setResponse(this.helpers
+                            .stringToBytes(newResponse));
+                   this.stdout.println("Error based XSS Found");
+				   // vulnerable  = true;
+                }				
             }catch (Exception e) {
                 this.stderr.println(e.getMessage());
             }
@@ -404,7 +412,7 @@ IIntruderPayloadGeneratorFactory, IIntruderPayloadProcessor, IScannerCheck {
                 /*
                  Server Config
                  */
-                BurpExtender.this.serverConfig = new JPanel(new GridLayout(5,2));
+                BurpExtender.this.serverConfig = new JPanel(new GridLayout(6,2));
 
                 BurpExtender.this.phantomURL = new JTextField(20);
                 BurpExtender.this.phantomURL
@@ -416,9 +424,13 @@ IIntruderPayloadGeneratorFactory, IIntruderPayloadProcessor, IScannerCheck {
                 BurpExtender.this.grepVal = new JTextField(20);
                 BurpExtender.this.grepVal.setText(BurpExtender.grepPhrase);
 
+                BurpExtender.this.errorGrepVal = new JTextField(20);
+                BurpExtender.this.errorGrepVal.setText(BurpExtender.errorGrepPhrase);				
+				
                 JLabel phantomHeading = new JLabel("PhantomJS Server Settings");
                 JLabel slimerHeading = new JLabel("Slimer Server Settings");
                 JLabel grepHeading = new JLabel("Grep Phrase");
+				JLabel errorGrepHeading = new JLabel("Grep Phrase for JS crash");
 
                 BurpExtender.this.serverConfig.add(phantomHeading);
                 BurpExtender.this.serverConfig
@@ -430,6 +442,9 @@ IIntruderPayloadGeneratorFactory, IIntruderPayloadProcessor, IScannerCheck {
                 BurpExtender.this.serverConfig.add(grepHeading);
                 BurpExtender.this.serverConfig.add(BurpExtender.this.grepVal);
 
+				BurpExtender.this.serverConfig.add(errorGrepHeading);
+                BurpExtender.this.serverConfig.add(BurpExtender.this.errorGrepVal);				
+				
                 JLabel functionsLabel = new JLabel("Javascript functions");
                 BurpExtender.this.serverConfig.add(functionsLabel);
                 BurpExtender.this.serverConfig
