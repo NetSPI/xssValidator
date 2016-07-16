@@ -1,1 +1,4 @@
 .DS_Store
+burp-extender/build/
+burp-extender/.gradle/
+burp-extender/bin/
