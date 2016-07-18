@@ -38,6 +38,13 @@ Build the jar using Apache ant:
 
 After this has completed you should see a BUILD SUCCESSFUL message. The .jar file is located in burp-extender/bin/burp/xssValidator.jar. Import this into Burp.
 
+Alternatively use gradle:
+
+    $ cd burp-extender
+    $ gradle build
+
+Which will generate build/libs/xssValidator.jar
+
 Usage
 -----
 
