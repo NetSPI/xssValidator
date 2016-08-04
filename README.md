@@ -5,8 +5,7 @@
 This is a burp intruder extender that is designed for automation and validation of XSS
 vulnerabilities.
 
-For more information, check out this blog post: http://blog.nvisium.com/2014/01/accurate-xss-detection-with-burpsuite.html
-
+For more information, check out this blog post: https://nvisium.com/blog/2014/01/31/accurate-xss-detection-with-burpsuite/
 
 XSS Detection
 -------------
