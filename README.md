@@ -14,7 +14,7 @@ XSS Detection
 The burp intruder extender will be designed to forward responses to the XSS detection
 server, that will need to be running externally. 
 
-The XSS detection server is powered by Phantom.js and/or Slimer.js.
+The XSS detection server is powered by Phantom.js.
 
 The XSS detection is influenced by Trustwave's blog post: Server-Side XSS Attack Detection with ModSecurity and PhantomJS:http://blog.spiderlabs.com/2013/02/server-site-xss-attack-detection-with-modsecurity-and-phantomjs.html
 
@@ -41,10 +41,9 @@ After this has completed you should see a BUILD SUCCESSFUL message. The .jar fil
 Usage
 -----
 
-Before starting an attack it is necessary to start the phantom and/or slimer xss-detection servers. Navigate to the xss-detector directory and execute the following to start phantom.js xss-detection script:
+Before starting an attack it is necessary to start the phantom xss-detection server. Navigate to the xss-detector directory and execute the following to start phantom.js xss-detection script:
 
 	$ phantomjs xss.js &
-	$ slimerjs slimer.js &
 
 The server is expecting base64 encoded page responses passed via the http-response, which will be passed via the Burp extender. 
 
