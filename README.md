@@ -29,7 +29,7 @@ Building Extender .Jar with bash script
 There is a script that will work with any debian-based distributions,
 buildXssValidatorJar.sh. To run it:
 
-$ bash /path/to/xssValidator/bashuildXssValidatorJar.sh
+    $ bash /path/to/xssValidator/bashuildXssValidatorJar.sh
 
 After this has completed you should see a BUILD SUCCESSFUL message. The
 .jar file is located in
