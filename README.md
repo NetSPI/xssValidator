@@ -29,12 +29,9 @@ Building Extender .Jar with bash script
 There is a script that will work with any debian-based distributions,
 buildXssValidatorJar.sh. To run it:
 
-    $ bash /path/to/xssValidator/bashuildXssValidatorJar.sh
+    $ bash /path/to/xssValidator/buildXssValidatorJar.sh
 
-After this has completed you should see a BUILD SUCCESSFUL message. The
-.jar file is located in
-/path/to/xssValidator/burp-extender/bin/burp/xssValidator.jar. Import
-this into Burp.
+After this has completed you should see a BUILD SUCCESSFUL message. The .jar file is located in /path/to/xssValidator/burp-extender/bin/burp/xssValidator.jar. Import this into Burp.
 
 Building Extender .Jar
 ----------------------
@@ -47,10 +44,8 @@ libraries are available for free from http://hc.apache.org/. Once the
 libraries have been downloaded, create a lib directory in the project
 root and move the .jar libraries into this directory:
 
-  
     $ mkdir /path/to/xssValidator/burp-extendertender/lib
-    $ mv /path/to/libs/*.jar
-/path/to/xssValidator/burp-burpextender/lib/
+    $ mv /path/to/libs/*.jar /path/to/xssValidator/burp-burpextender/lib/
 
 Now, navigate to the burp-extender/bin/burp directory:
 
@@ -61,9 +56,7 @@ Build the jar using Apache ant:
     $ ant
 
 After this has completed you should see a BUILD SUCCESSFUL message.
-The .jar file is located in
-/path/to/xssValidator/burp-extender/bin/burp/xssValidator.jar. Import
-this into Burp.
+The .jar file is located in /path/to/xssValidator/burp-extender/bin/burp/xssValidator.jar. Import this into Burp.
 
 Building Extender .Jar using Puppet
 ----------------------
