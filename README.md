@@ -11,7 +11,7 @@ XSS Detection
 -------------
 
 The burp intruder extender will be designed to forward responses to the XSS detection
-server, that will need to be running externally. 
+server, that will need to be running externally.
 
 The XSS detection server is powered by Phantom.js and/or Slimer.js.
 
@@ -26,7 +26,9 @@ First, download the apache HttpComponents Client libraries. These libraries are 
 
 	$ mkdir /path/to/xssValidator/burp-extender/lib
 	$ mv /path/to/libs/*.jar /path/to/xssValidator/burp-extender/lib/
- 
+
+**Note:** The build.xml file for ant is using an older version of HttpComponents Client libraries (4.3.6). If you use a newer version of the libraries, make sure that you change the filenames in `/path/to/xssValidator/burp-extender/bin/burp/build.xml` following the files in `/path/to/xssValidator/burp-extender/lib/`
+
 Now, navigate to the burp-extender/bin/burp directory:
 
 	$ cd burp-extender/bin/burp
@@ -45,7 +47,7 @@ Before starting an attack it is necessary to start the phantom and/or slimer xss
 	$ phantomjs xss.js &
 	$ slimerjs slimer.js &
 
-The server is expecting base64 encoded page responses passed via the http-response, which will be passed via the Burp extender. 
+The server is expecting base64 encoded page responses passed via the http-response, which will be passed via the Burp extender.
 
 Examples
 --------
