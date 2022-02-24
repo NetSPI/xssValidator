@@ -62,6 +62,13 @@ Building Extender .Jar using Puppet
 A puppet module to build xssValidator can be found at
 https://github.com/l50/puppet-xss_validator.
 
+Alternatively use gradle:
+
+    $ cd burp-extender
+    $ gradle build
+
+Which will generate build/libs/xssValidator.jar
+
 Usage
 -----
 
