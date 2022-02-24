@@ -25,7 +25,7 @@ buildXssValidatorJar.sh. To run it:
 
     $ bash /path/to/xssValidator/buildXssValidatorJar.sh
 
-After this has completed you should see a BUILD SUCCESSFUL message. The .jar file is located in /path/to/xssValidator/burp-extender/bin/burp/xssValidator.jar. Import this into Burp.
+After completing this, you should see a BUILD SUCCESSFUL message. The .jar file is located in /path/to/xssValidator/burp-extender/bin/burp/xssValidator.jar. Import this into Burp.
 
 Building Extender .Jar (Manual)
 ----------------------
